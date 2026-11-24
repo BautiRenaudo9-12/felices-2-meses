@@ -319,17 +319,13 @@
     </figure>
     <div class="counters">
       <div class="counter">
-        <div class="lbl">Somos novios hace</div>
+        <div class="lbl">Novios hace</div>
         <div class="big" id="c-novios">—</div>
         <div class="clock">
           <div><b id="c-h">00</b><span>horas</span></div>
           <div><b id="c-m">00</b><span>min</span></div>
           <div><b id="c-s">00</b><span>seg</span></div>
         </div>
-      </div>
-      <div class="counter">
-        <div class="lbl">Desde que nos conocimos pasaron</div>
-        <div class="big" id="c-cita">—</div>
       </div>
     </div>
     <div class="scroll-hint">Bajá despacito, que hay sorpresas 👇</div>
@@ -436,7 +432,6 @@
     { q:"¿Qué prenda mía quedó con tu perfume?", a:["Mi buzo gris","La remera oversize","La campera de River","Mi gorra"], ok:2 },
     { q:"¿Qué me regalaste por nuestro primer mes?", a:["Un buzo","Una remera y una malla","Una gorra","Un perfume"], ok:1 },
     { q:"¿Qué peli fuimos a ver al cine en julio?", a:["Cars","Verity","Toy Story 5","Intensamente"], ok:2 },
-    { q:"¿De dónde era el matambre con crema que comimos?", a:["Rugantino","Casa Popular","Manush","Viejo Balcón"], ok:3 },
     { q:"¿Cómo le digo a Zari?", a:["Garrapata","Bichita","Chinchulina","Pompón"], ok:2 },
   ];
 
@@ -444,9 +439,9 @@
     { e:"🍫", bg:"var(--peach)", t:"Chocolates de pistacho", p:"Los de Luccianos que siempre quisiste probar. Los compro yo." },
     { e:"💆‍♀️", bg:"var(--lav)",   t:"Masajes antes de dormir", p:"Con la cosita para los masajes. Sin límite de tiempo." },
     { e:"🐩", bg:"var(--mint)",  t:"Yo me ocupo de Zari los domingos", p:"Paseo, mimos y lo que necesite. Vos descansás." },
-    { e:"🍸", bg:"var(--sky)",   t:"Vermut y picada", p:"Pichincha con tónica y una picada caliente. Yo me encargo de todo." },
-    { e:"☕", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro. Invito yo." },
-    { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía." },
+    { e:"🍸", bg:"var(--sky)",   t:"Vermut y picada", p:"Pichincha con tónica y una picada caliente." },
+    { e:"☕", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro." },
+    { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía.", bonus:true },
     { e:"💗", bg:"var(--pink)",  t:"Comodín", p:"Vale por lo que vos quieras. Lo que sea.", bonus:true },
   ];
 
@@ -546,8 +541,6 @@
     const s = Math.floor(ms / 1e3);
     $("#c-novios").innerHTML = `${Math.round(days * k)} <small>días</small>`;
     $("#c-h").textContent = pad(Math.round(h * k)); $("#c-m").textContent = pad(Math.round(m * k)); $("#c-s").textContent = pad(Math.round(s * k));
-    const d2 = Math.floor(Math.max(0, now - FIRST_DATE) / 864e5);
-    $("#c-cita").innerHTML = `${Math.round(d2 * k)} <small>días</small>`;
   }
   // los números suben desde 0 cuando se abre la página
   function countUp() {
@@ -640,7 +633,7 @@
     $("#unlock").classList.remove("on");
     if (qi >= QUIZ.length) {
       $("#qbox").innerHTML = `<p class="q">¡Me conocés de memoria! 🏆</p>
-        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa el <b>Comodín</b> 💗</p>`;
+        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa <b>dos vales bonus</b> 💗</p>`;
       return;
     }
     const Q = QUIZ[qi];
