@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nuestro plan 💗</title>
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pink:#ffd3e1; --pink-d:#ff8fb3; --pink-dd:#e5648f;
+    --lav:#e6dcff; --mint:#d2f3e6; --butter:#fff1bf; --peach:#ffe0cc; --sky:#d6ecff;
+    --ink:#4a3a46; --ink-soft:#8a7584; --card:#ffffff; --line:#f3dbe5;
+    --shadow:0 10px 28px -12px rgba(201,95,140,.35);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:"Nunito",system-ui,sans-serif;color:var(--ink);
+    background:#fff6f9;
+    background-image:
+      radial-gradient(circle at 10% 0%, #ffe3ee 0, transparent 45%),
+      radial-gradient(circle at 100% 30%, #ece4ff 0, transparent 40%),
+      radial-gradient(circle at 0% 100%, #dff6ec 0, transparent 45%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.btn{font-family:"Fredoka",system-ui,sans-serif}
+  .wrap{max-width:460px;margin:0 auto;padding:28px 16px 120px;position:relative;z-index:1}
+
+  /* floating background bits */
+  .floaters{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .floaters span{position:absolute;bottom:-40px;font-size:20px;opacity:.35;animation:rise linear infinite}
+  @keyframes rise{to{transform:translateY(-115vh) rotate(25deg)}}
+
+  .screen{display:none;animation:pop .45s cubic-bezier(.2,.9,.3,1.2)}
+  .screen.on{display:block}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+
+  .center{text-align:center}
+  h1{font-size:clamp(28px,8vw,36px);line-height:1.1;margin:10px 0 12px;color:var(--pink-dd)}
+  h2{font-size:26px;margin:4px 0 6px;color:var(--pink-dd)}
+  p.lead{font-size:17px;line-height:1.55;margin:0 0 22px;color:var(--ink)}
+  .muted{color:var(--ink-soft);font-size:14px}
+
+  .pups{display:flex;justify-content:center;align-items:flex-end;gap:4px;margin:6px 0 2px}
+  .pup{width:128px;height:128px}
+  .pup.bob{animation:bob 2.4s ease-in-out infinite}
+  .pup.bob.b2{animation-delay:-1.2s}
+  @keyframes bob{50%{transform:translateY(-7px) rotate(-2deg)}}
+  .names{display:flex;justify-content:center;gap:58px;font-family:"Fredoka";font-weight:600;color:var(--ink-soft);font-size:14px;margin-bottom:14px}
+
+  .bubble{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:18px 18px;box-shadow:var(--shadow);position:relative;text-align:left}
+  .bubble::before{content:"";position:absolute;top:-11px;left:50%;margin-left:-10px;width:18px;height:18px;background:var(--card);border-left:2px solid var(--line);border-top:2px solid var(--line);transform:rotate(45deg)}
+
+  .btn{appearance:none;border:0;cursor:pointer;font-weight:600;font-size:19px;border-radius:999px;padding:15px 26px;
+       background:var(--pink-d);color:#fff;box-shadow:0 6px 0 var(--pink-dd), var(--shadow);transition:transform .12s, box-shadow .12s, opacity .2s}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--pink-dd)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+  .btn.ghost{background:#fff;color:var(--pink-dd);box-shadow:0 6px 0 var(--line), var(--shadow)}
+  .btn.block{display:block;width:100%}
+  .btn.wa{background:#3ccf7a;box-shadow:0 6px 0 #25a85c, var(--shadow)}
+
+  .head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .head .mini{width:58px;height:58px;flex:0 0 auto}
+  .head p{margin:2px 0 0;color:var(--ink-soft);font-size:15px;line-height:1.4}
+
+  .plans{display:grid;gap:12px}
+  .plan{display:flex;gap:14px;align-items:center;text-align:left;width:100%;cursor:pointer;
+        background:var(--card);border:2.5px solid var(--line);border-radius:22px;padding:14px 14px;
+        box-shadow:var(--shadow);font:inherit;color:inherit;transition:transform .15s,border-color .2s,background .2s;position:relative}
+  .plan:active{transform:scale(.98)}
+  .plan .ico{flex:0 0 58px;height:58px;border-radius:18px;display:grid;place-items:center;font-size:30px}
+  .plan h3{margin:0 0 3px;font-size:18px;font-weight:600}
+  .plan p{margin:0;font-size:14px;line-height:1.4;color:var(--ink-soft)}
+  .plan .chk{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;border:2.5px solid var(--line);background:#fff;display:grid;place-items:center;font-size:15px;transition:.2s}
+  .plan .txt{padding-right:24px}
+  .plan.sel{border-color:var(--pink-d);background:#fff7fa}
+  .plan.sel .chk{background:var(--pink-d);border-color:var(--pink-d);transform:scale(1.1)}
+  .plan.sel .chk::after{content:"🐾";filter:brightness(10)}
+  .other-in{display:none;margin-top:10px}
+  .other-in.on{display:block}
+  input[type=text],textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);border:2.5px solid var(--line);border-radius:16px;padding:12px 14px;background:#fff;outline:none;resize:none}
+  input[type=text]:focus,textarea:focus{border-color:var(--pink-d)}
+
+  .sticky{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+          background:linear-gradient(to top, #fff6f9 60%, rgba(255,246,249,0))}
+  .sticky .inner{max-width:460px;margin:0 auto}
+
+  .opts{display:grid;gap:10px;margin:10px 0 22px}
+  .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;border:2.5px solid var(--line);background:#fff;cursor:pointer;font-weight:700;box-shadow:var(--shadow);transition:.2s}
+  .opt input{display:none}
+  .opt .dot{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--line);flex:0 0 auto;transition:.2s}
+  .opt.sel{border-color:var(--pink-d);background:#fff7fa}
+  .opt.sel .dot{border-color:var(--pink-d);background:radial-gradient(circle,var(--pink-d) 45%,#fff 50%)}
+  .opt .e{font-size:22px}
+  label.lbl{display:block;font-family:"Fredoka";font-weight:600;font-size:18px;margin:6px 0 8px}
+
+  .arena{position:relative;height:220px;margin-top:18px}
+  .back{appearance:none;border:0;background:none;font:inherit;font-weight:700;color:var(--ink-soft);font-size:15px;padding:4px 0;margin:0 0 10px;cursor:pointer}
+  .arena .btn{white-space:nowrap;font-size:17px;padding:13px 20px}
+  .arena .btn{position:absolute;transition:left .25s cubic-bezier(.3,1.4,.5,1), top .25s cubic-bezier(.3,1.4,.5,1), transform .12s}
+  #yes{left:calc(50% - 130px);top:20px}
+  #no{left:calc(50% + 24px);top:20px}
+
+  .ticket{background:#fff;border-radius:24px;box-shadow:var(--shadow);overflow:hidden;border:2.5px solid var(--line);text-align:left;margin:18px 0}
+  .ticket .top{background:linear-gradient(135deg,var(--pink),var(--lav));padding:16px 18px}
+  .ticket .top small{font-family:"Fredoka";font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--pink-dd);font-size:12px}
+  .ticket .top h3{margin:4px 0 0;font-size:22px}
+  .ticket .cut{height:0;border-top:2.5px dashed var(--line);margin:0 14px;position:relative}
+  .ticket .cut::before,.ticket .cut::after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:#fff6f9;border:2.5px solid var(--line)}
+  .ticket .cut::before{left:-28px}.ticket .cut::after{right:-28px}
+  .ticket .body{padding:14px 18px 18px;font-size:15px;line-height:1.5}
+  .ticket .body b{font-family:"Fredoka";font-weight:600}
+  .ticket ul{margin:6px 0 0;padding-left:20px}
+  .sign{font-family:"Fredoka";color:var(--ink-soft);font-size:13px;margin-top:10px}
+
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden}
+  .confetti span{position:absolute;top:-40px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="floaters" id="floaters" aria-hidden="true"></div>
+
+<!-- Dibujitos: Zari (caniche negra con moñito) y Frida (jack russell) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="zari" viewBox="0 0 140 140">
+      <g stroke="#2e2a33" stroke-width="2.5" stroke-linejoin="round">
+        <!-- cuerpo -->
+        <ellipse cx="70" cy="114" rx="34" ry="20" fill="#4b4752"/>
+        <circle cx="44" cy="112" r="11" fill="#4b4752"/><circle cx="96" cy="112" r="11" fill="#4b4752"/>
+        <!-- orejas -->
+        <ellipse cx="33" cy="72" rx="14" ry="21" fill="#423e49"/>
+        <ellipse cx="107" cy="72" rx="14" ry="21" fill="#423e49"/>
+        <!-- cabeza esponjosa -->
+        <circle cx="70" cy="62" r="32" fill="#4b4752"/>
+        <circle cx="48" cy="40" r="13" fill="#4b4752"/><circle cx="70" cy="30" r="15" fill="#4b4752"/><circle cx="92" cy="40" r="13" fill="#4b4752"/>
+      </g>
+      <!-- tapar costuras internas -->
+      <circle cx="70" cy="58" r="27" fill="#4b4752"/>
+      <ellipse cx="70" cy="76" rx="17" ry="12" fill="#625d6b"/>
+      <!-- ojos -->
+      <circle cx="58" cy="60" r="5.5" fill="#15121a"/><circle cx="82" cy="60" r="5.5" fill="#15121a"/>
+      <circle cx="60" cy="58" r="1.8" fill="#fff"/><circle cx="84" cy="58" r="1.8" fill="#fff"/>
+      <!-- cachetes -->
+      <ellipse cx="49" cy="72" rx="6" ry="3.5" fill="#ff9fbe" opacity=".75"/>
+      <ellipse cx="91" cy="72" rx="6" ry="3.5" fill="#ff9fbe" opacity=".75"/>
+      <!-- nariz y boca -->
+      <ellipse cx="70" cy="71" rx="5" ry="3.6" fill="#15121a"/>
+      <path d="M64 78 q6 5 12 0" fill="none" stroke="#15121a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M67 80 q3 8 6 0 z" fill="#ff7fa6"/>
+      <!-- moñito rosa -->
+      <g transform="translate(90 24) rotate(18)" stroke="#d94d7f" stroke-width="2" stroke-linejoin="round">
+        <path d="M0 0 L-14 -9 L-14 9 Z" fill="#ff9cc0"/><path d="M0 0 L14 -9 L14 9 Z" fill="#ff9cc0"/>
+        <circle r="4.5" fill="#ff7fab"/>
+      </g>
+    </symbol>
+
+    <symbol id="frida" viewBox="0 0 140 140">
+      <g stroke="#4a3a30" stroke-width="2.5" stroke-linejoin="round">
+        <!-- cuerpo -->
+        <ellipse cx="70" cy="116" rx="32" ry="19" fill="#fffdf8"/>
+        <!-- orejas dobladas -->
+        <path d="M38 36 L22 52 Q22 70 40 62 Z" fill="#c9874b"/>
+        <path d="M102 36 L118 52 Q118 70 100 62 Z" fill="#c9874b"/>
+        <!-- cabeza -->
+        <ellipse cx="70" cy="62" rx="33" ry="30" fill="#fffdf8"/>
+      </g>
+      <!-- mancha -->
+      <path d="M44 42 Q56 34 66 42 Q68 58 58 66 Q44 66 42 54 Z" fill="#d6955a"/>
+      <ellipse cx="70" cy="78" rx="17" ry="11" fill="#fff" stroke="#eadccc" stroke-width="1.5"/>
+      <!-- ojos -->
+      <circle cx="57" cy="58" r="5.5" fill="#20160f"/><circle cx="83" cy="58" r="5.5" fill="#20160f"/>
+      <circle cx="59" cy="56" r="1.8" fill="#fff"/><circle cx="85" cy="56" r="1.8" fill="#fff"/>
+      <ellipse cx="47" cy="72" rx="6" ry="3.5" fill="#ff9fbe" opacity=".7"/>
+      <ellipse cx="93" cy="72" rx="6" ry="3.5" fill="#ff9fbe" opacity=".7"/>
+      <!-- nariz, boca, lengua -->
+      <ellipse cx="70" cy="71" rx="5.5" ry="4" fill="#20160f"/>
+      <path d="M63 78 q7 5 14 0" fill="none" stroke="#20160f" stroke-width="2" stroke-linecap="round"/>
+      <path d="M65.5 80 q4.5 12 9 0 z" fill="#ff7fa6" stroke="#e05f88" stroke-width="1.2"/>
+      <!-- pañuelito floreado -->
+      <path d="M44 92 Q70 102 96 92 L70 112 Z" fill="#ff8fb3" stroke="#d94d7f" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="62" cy="98" r="2.2" fill="#fff"/><circle cx="76" cy="97" r="2.2" fill="#fff6a8"/><circle cx="70" cy="104" r="2" fill="#fff"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="wrap">
+
+  <!-- 1. INTRO -->
+  <section class="screen on" id="s-intro">
+    <div class="center">
+      <div class="pups">
+        <svg class="pup bob"><use href="#zari"/></svg>
+        <svg class="pup bob b2"><use href="#frida"/></svg>
+      </div>
+      <div class="names"><span>Zari</span><span>Frida</span></div>
+      <h1>¡Hola, Gordita! 💗</h1>
+      <div class="bubble">
+        <p class="lead" style="margin:0">
+          El sábado <b>28</b> cumplimos <b>2 meses de novios</b> y Zari y Frida tienen una misión muy importante:
+          ayudarte a elegir <b>cómo lo festejamos</b>.
+        </p>
+        <p class="muted" style="margin:12px 0 0">Podés elegir uno o varios planes. Los que no hagamos el sábado quedan de <b>vale</b> para más adelante 😉</p>
+      </div>
+      <div style="margin-top:28px">
+        <button class="btn" data-go="s-plans">Ver los planes 🐾</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. PLANES -->
+  <section class="screen" id="s-plans">
+    <button class="back" data-go="s-intro">← Volver</button>
+    <div class="head">
+      <svg class="mini"><use href="#zari"/></svg>
+      <div>
+        <h2>Elegí tus planes</h2>
+        <p>Tocá todos los que te tienten. Sin culpa.</p>
+      </div>
+    </div>
+    <div class="plans" id="plans"></div>
+  </section>
+
+  <!-- 3. EL SÁBADO -->
+  <section class="screen" id="s-sat">
+    <button class="back" data-go="s-plans">← Cambiar planes</button>
+    <div class="head">
+      <svg class="mini"><use href="#frida"/></svg>
+      <div>
+        <h2 id="sat-title">¿Cuál hacemos el sábado?</h2>
+        <p id="sat-sub">Los demás quedan guardados como vales 🎟️</p>
+      </div>
+    </div>
+    <div class="opts" id="sat-opts"></div>
+    <label class="lbl" for="wish">¿Algún antojo o pedido especial? 🍓</label>
+    <textarea id="wish" rows="3" placeholder="Ej: que haya helado de pistacho (obvio)…"></textarea>
+  </section>
+
+  <!-- 4. ¿SEGURA? -->
+  <section class="screen" id="s-sure">
+    <div class="center">
+      <div class="pups">
+        <svg class="pup bob"><use href="#zari"/></svg>
+        <svg class="pup bob b2"><use href="#frida"/></svg>
+      </div>
+      <button class="back" data-go="s-sat">← Volver</button>
+      <h1>¿Segura, segurísima?</h1>
+      <p class="lead" id="sure-txt"></p>
+      <div class="arena" id="arena">
+        <button class="btn" id="yes">¡Sí! 💗</button>
+        <button class="btn ghost" id="no">No</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. FINAL -->
+  <section class="screen" id="s-done">
+    <div class="center">
+      <div class="pups">
+        <svg class="pup bob"><use href="#zari"/></svg>
+        <svg class="pup bob b2"><use href="#frida"/></svg>
+      </div>
+      <h1>¡Plan confirmado! 🎉</h1>
+      <p class="lead" style="margin-bottom:6px">Ahora mandale esto a Bau así se pone a organizar todo.</p>
+      <div class="ticket">
+        <div class="top">
+          <small>Pase para el sábado 28/11</small>
+          <h3 id="t-main"></h3>
+        </div>
+        <div class="cut"></div>
+        <div class="body" id="t-body"></div>
+      </div>
+      <button class="btn wa block" id="send">Mandárselo a Bau 💬</button>
+      <p class="muted" style="margin-top:14px">Bau ya está esperando, ansioso 👀</p>
+    </div>
+  </section>
+</main>
+
+<div class="sticky" id="bar" hidden>
+  <div class="inner"><button class="btn block" id="next" disabled>Elegí al menos uno 🐾</button></div>
+</div>
+
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+  // ⚙️ Poné tu número acá (con código de país, sin + ni espacios). Ej: "5493411234567".
+  // Si queda vacío, WhatsApp le deja elegir a quién mandarlo.
+  const PHONE = "";
+
+  const PLANS = [
+    { id:"charmat", e:"☕", bg:"var(--peach)", t:"Cena o merienda en Charmat", d:"Mesa para dos, sin apuro. Vos decidís si es merienda o cena." },
+    { id:"isla",    e:"🌅", bg:"var(--butter)", t:"Día de isla", d:"Volver al bodegón y quedarnos hasta el atardecer. Sin vos no voy, prometido." },
+    { id:"picnic",  e:"🧺", bg:"var(--mint)", t:"Picnic con Zari y Frida", d:"Mantita, mate, frutillas con chocolate y las nenas corriendo por ahí." },
+    { id:"cine",    e:"🍿", bg:"var(--pink)", t:"Cine y pochoclos", d:"Los Juegos del Hambre: Amanecer en la cosecha. Doblada, obvio." },
+    { id:"netflix", e:"🍦", bg:"var(--lav)", t:"Netflix y helado", d:"Helado de pistacho (ya sé, ya sé), mantita y dormir abrazaditos." },
+    { id:"pile",    e:"☀️", bg:"var(--sky)", t:"Tarde de pile y sol", d:"Me preguntaste cuándo te invitaba: ahora. Mate, sol y chill total." },
+    { id:"pintura", e:"🎨", bg:"var(--peach)", t:"Merienda y pintura", d:"Un cuadrito por números para cada uno. Prometo no copiarte." },
+    { id:"otra",    e:"💌", bg:"var(--pink)", t:"Tengo otra idea", d:"Contame qué se te ocurre y lo hacemos." },
+  ];
+
+  const $ = s => document.querySelector(s);
+  const sel = new Set();
+  let saturday = null;
+
+  // fondo con corazones y huellitas
+  (() => {
+    const f = $("#floaters"), bits = ["💗","🐾","🌸","💕","🐾","✨"];
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElement("span");
+      s.textContent = bits[i % bits.length];
+      s.style.left = (Math.random() * 100) + "%";
+      s.style.animationDuration = (14 + Math.random() * 14) + "s";
+      s.style.animationDelay = (-Math.random() * 28) + "s";
+      s.style.fontSize = (14 + Math.random() * 14) + "px";
+      f.appendChild(s);
+    }
+  })();
+
+  // tarjetas de planes
+  const grid = $("#plans");
+  PLANS.forEach(p => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "plan"; b.dataset.id = p.id;
+    b.innerHTML = `<div class="ico" style="background:${p.bg}">${p.e}</div>
+      <div class="txt"><h3>${p.t}</h3><p>${p.d}</p></div><span class="chk"></span>`;
+    b.addEventListener("click", () => toggle(p.id, b));
+    grid.appendChild(b);
+    if (p.id === "otra") {
+      const w = document.createElement("div");
+      w.className = "other-in"; w.id = "other-wrap";
+      w.innerHTML = `<input type="text" id="other" maxlength="80" placeholder="Mi idea es…">`;
+      grid.appendChild(w);
+    }
+  });
+
+  function toggle(id, el) {
+    sel.has(id) ? sel.delete(id) : sel.add(id);
+    el.classList.toggle("sel", sel.has(id));
+    if (id === "otra") {
+      $("#other-wrap").classList.toggle("on", sel.has(id));
+      if (sel.has(id)) setTimeout(() => $("#other").focus(), 50);
+    }
+    if (navigator.vibrate) navigator.vibrate(12);
+    updateBar();
+  }
+
+  function updateBar() {
+    const n = sel.size, btn = $("#next");
+    btn.disabled = n === 0;
+    btn.textContent = n === 0 ? "Elegí al menos uno 🐾" : `Listo (${n}) →`;
+  }
+
+  const plan = id => PLANS.find(p => p.id === id);
+  const label = id => {
+    if (id === "otra") { const v = $("#other").value.trim(); return "💌 " + (v || "Otra idea (te cuento)"); }
+    const p = plan(id); return p.e + " " + p.t;
+  };
+
+  // navegación
+  let current = "s-intro";
+  function go(id) {
+    document.getElementById(current).classList.remove("on");
+    document.getElementById(id).classList.add("on");
+    current = id;
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    $("#bar").hidden = !(id === "s-plans" || id === "s-sat");
+    if (id === "s-plans") updateBar();
+    if (id === "s-sat") buildSat();
+    if (id === "s-sure") buildSure();
+    if (id === "s-done") buildDone();
+  }
+  document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.dataset.go)));
+
+  $("#next").addEventListener("click", () => {
+    if (current === "s-plans") go("s-sat");
+    else if (current === "s-sat") go("s-sure");
+  });
+
+  function buildSat() {
+    const ids = PLANS.map(p => p.id).filter(id => sel.has(id));
+    if (!ids.includes(saturday)) saturday = ids.length === 1 ? ids[0] : null;
+    $("#sat-title").textContent = ids.length === 1 ? "¡Ese es el plan del sábado!" : "¿Cuál hacemos el sábado?";
+    $("#sat-sub").textContent = ids.length === 1 ? "Buenísima elección 💗" : "Los demás quedan guardados como vales 🎟️";
+    const box = $("#sat-opts"); box.innerHTML = "";
+    ids.forEach(id => {
+      const l = document.createElement("label");
+      l.className = "opt" + (saturday === id ? " sel" : "");
+      l.innerHTML = `<input type="radio" name="sat" value="${id}"><span class="dot"></span><span>${label(id)}</span>`;
+      l.addEventListener("click", e => {
+        e.preventDefault(); saturday = id;
+        box.querySelectorAll(".opt").forEach(o => o.classList.remove("sel"));
+        l.classList.add("sel"); satBtn();
+      });
+      box.appendChild(l);
+    });
+    satBtn();
+  }
+  function satBtn() {
+    const btn = $("#next");
+    btn.disabled = !saturday;
+    btn.textContent = saturday ? "Confirmar →" : "Elegí uno para el sábado";
+  }
+
+  // ¿segura? (el "No" se escapa)
+  let tries = 0;
+  const noMsgs = ["No", "¿Segura?", "Pensalo bien…", "Zari está triste 🥺", "Frida también 🥺", "No hay opción 😌"];
+  function buildSure() {
+    tries = 0;
+    const no = $("#no"); no.textContent = "No"; no.style.left = ""; no.style.top = ""; no.className = "btn ghost"; no.onclick = null;
+    $("#sure-txt").innerHTML = `El sábado: <b>${label(saturday)}</b>`;
+  }
+  function flee(e) {
+    if (e) e.preventDefault();
+    const arena = $("#arena"), no = $("#no");
+    tries++;
+    no.textContent = noMsgs[Math.min(tries, noMsgs.length - 1)];
+    if (tries >= noMsgs.length - 1) { no.className = "btn"; no.onclick = () => go("s-done"); }
+    const maxX = arena.clientWidth - no.offsetWidth, maxY = arena.clientHeight - no.offsetHeight;
+    no.style.left = Math.max(0, Math.random() * maxX) + "px";
+    no.style.top = Math.max(0, Math.random() * maxY) + "px";
+  }
+  $("#no").addEventListener("pointerenter", e => { if (e.pointerType === "mouse" && tries < noMsgs.length - 1) flee(); });
+  $("#no").addEventListener("pointerdown", e => { if (tries < noMsgs.length - 1) flee(e); });
+  $("#no").addEventListener("click", e => { if (tries < noMsgs.length - 1) e.preventDefault(); });
+  $("#yes").addEventListener("click", () => go("s-done"));
+
+  // final
+  function buildDone() {
+    const rest = PLANS.map(p => p.id).filter(id => sel.has(id) && id !== saturday);
+    const wish = $("#wish").value.trim();
+    $("#t-main").textContent = label(saturday);
+    let html = "";
+    if (rest.length) html += `<b>Vales para más adelante:</b><ul>${rest.map(id => `<li>${esc(label(id))}</li>`).join("")}</ul>`;
+    if (wish) html += `<div style="margin-top:${rest.length ? 10 : 0}px"><b>Antojo:</b> ${esc(wish)}</div>`;
+    if (!html) html = `Un solo plan, y es perfecto. 💗`;
+    html += `<div class="sign">Válido para: Sofi + Bau (y las nenas 🐾)</div>`;
+    $("#t-body").innerHTML = html;
+    confetti();
+  }
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+  $("#send").addEventListener("click", () => {
+    const rest = PLANS.map(p => p.id).filter(id => sel.has(id) && id !== saturday);
+    const wish = $("#wish").value.trim();
+    let msg = `🐾 ¡Bau! Ya elegí nuestros planes 💗\n\n🗓️ Sábado 28/11: ${label(saturday)}`;
+    if (rest.length) msg += `\n\n🎟️ Vales para más adelante:\n${rest.map(id => "• " + label(id)).join("\n")}`;
+    if (wish) msg += `\n\n🍓 Antojo: ${wish}`;
+    msg += `\n\nFirmado: tu gordita 🫶🏻`;
+    const url = `https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  });
+
+  function confetti() {
+    const c = $("#confetti"), bits = ["💗","🐾","💕","🌸","✨","🎉"];
+    for (let i = 0; i < 40; i++) {
+      const s = document.createElement("span");
+      s.textContent = bits[i % bits.length];
+      s.style.left = Math.random() * 100 + "%";
+      s.style.fontSize = (16 + Math.random() * 16) + "px";
+      s.style.animationDuration = (2.4 + Math.random() * 2.2) + "s";
+      s.style.animationDelay = (Math.random() * .8) + "s";
+      c.appendChild(s);
+      setTimeout(() => s.remove(), 5500);
+    }
+  }
+</script>
+</body>
+</html>
