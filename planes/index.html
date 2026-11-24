@@ -33,7 +33,7 @@
   /* floating background bits */
   .floaters{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
   .floaters span{position:absolute;bottom:-40px;font-size:20px;opacity:.35;animation:rise linear infinite}
-  @keyframes rise{to{transform:translateY(-115vh) rotate(25deg)}}
+  @keyframes rise{from{transform:scale(var(--s,1))}to{transform:translateY(-115vh) rotate(25deg) scale(var(--s,1))}}
 
   .screen{display:none;animation:pop .45s cubic-bezier(.2,.9,.3,1.2)}
   .screen.on{display:block}
@@ -118,8 +118,8 @@
   .sign{font-family:"Fredoka";color:var(--ink-soft);font-size:13px;margin-top:10px}
 
   .confetti{position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden}
-  .confetti span{position:absolute;top:-40px;animation:fall linear forwards}
-  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  .confetti span{position:absolute;top:-40px;font-size:22px;will-change:transform;animation:fall linear forwards}
+  @keyframes fall{from{transform:scale(var(--s,1))}to{transform:translateY(110vh) rotate(540deg) scale(var(--s,1))}}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -318,7 +318,7 @@
       s.style.left = (Math.random() * 100) + "%";
       s.style.animationDuration = (14 + Math.random() * 14) + "s";
       s.style.animationDelay = (-Math.random() * 28) + "s";
-      s.style.fontSize = (14 + Math.random() * 14) + "px";
+      s.style.setProperty("--s", (.7 + Math.random() * .7).toFixed(2));
       f.appendChild(s);
     }
   })();
@@ -463,7 +463,7 @@
       const s = document.createElement("span");
       s.textContent = bits[i % bits.length];
       s.style.left = Math.random() * 100 + "%";
-      s.style.fontSize = (16 + Math.random() * 16) + "px";
+      s.style.setProperty("--s", (.75 + Math.random() * .6).toFixed(2));   // tamaño con scale, no con font-size
       s.style.animationDuration = (2.4 + Math.random() * 2.2) + "s";
       s.style.animationDelay = (Math.random() * .8) + "s";
       c.appendChild(s);

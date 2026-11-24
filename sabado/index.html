@@ -39,8 +39,8 @@
   .muted{color:var(--ink-soft);font-size:14px}
 
   .floaters{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-  .floaters span{position:absolute;bottom:-40px;opacity:.33;animation:rise linear infinite}
-  @keyframes rise{to{transform:translateY(-115vh) rotate(25deg)}}
+  .floaters span{position:absolute;bottom:-40px;opacity:.33;font-size:20px;animation:rise linear infinite}
+  @keyframes rise{from{transform:scale(var(--s,1))}to{transform:translateY(-115vh) rotate(25deg) scale(var(--s,1))}}
 
   .btn{appearance:none;border:0;cursor:pointer;font-weight:600;font-size:19px;border-radius:999px;padding:15px 26px;
        background:var(--pink-d);color:#fff;box-shadow:0 6px 0 var(--pink-dd), var(--shadow);transition:transform .12s, box-shadow .12s, opacity .2s}
@@ -63,7 +63,7 @@
   .gate-card{width:100%;max-width:380px;text-align:center;background:#fff;border:2.5px solid var(--line);border-radius:28px;padding:26px 20px 24px;box-shadow:var(--shadow)}
   .gate-card h1{font-size:30px}
   .pin{display:flex;gap:10px;justify-content:center;margin:16px 0 8px}
-  .pin input{width:220px;height:66px;text-align:center;font:600 32px "Fredoka";letter-spacing:.35em;padding-left:.35em;color:var(--ink);border:2.5px solid var(--line);border-radius:18px;outline:none;background:#fff9fb}
+  .pin input{width:240px;height:60px;text-align:center;font:600 22px "Fredoka";padding:0 14px;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;color:var(--ink);border:2.5px solid var(--line);border-radius:18px;outline:none;background:#fff9fb}
   .pin input:focus{border-color:var(--pink-d)}
   .pin.bad{animation:shake .4s}
   @keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
@@ -156,8 +156,8 @@
   .final .polaroid{width:70%;max-width:260px;transform:rotate(3deg);margin:10px 0 18px}
 
   .confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
-  .confetti span{position:absolute;top:-40px;animation:fall linear forwards}
-  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  .confetti span{position:absolute;top:-40px;font-size:22px;animation:fall linear forwards}
+  @keyframes fall{from{transform:scale(var(--s,1))}to{transform:translateY(110vh) rotate(540deg) scale(var(--s,1))}}
   /* ---------- ANIMACIONES EXTRA ---------- */
   /* entrada del inicio (arranca cuando se abre la página) */
   .hero h1 .ch{display:inline-block}
@@ -175,10 +175,14 @@
   .rv.in{opacity:1;transform:none}
 
   /* corazoncitos al tocar la pantalla */
-  .tap-heart{position:fixed;pointer-events:none;z-index:80;font-size:20px;animation:tapUp 1s ease-out forwards}
+  /* capa única para todas las partículas: aislada para que no recalcule el resto de la página */
+  .fx{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden;contain:strict}
+  .burst,.tap-heart,.confetti span,.floaters span{will-change:transform,opacity;backface-visibility:hidden}
+  .confetti{contain:strict}
+  .tap-heart{position:absolute;pointer-events:none;font-size:20px;animation:tapUp 1s ease-out forwards}
   @keyframes tapUp{from{transform:translate(-50%,-50%) scale(.3);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% - 80px)) scale(1.2) rotate(var(--r));opacity:0}}
-  .burst{position:fixed;pointer-events:none;z-index:80;font-size:20px;animation:burst 1s cubic-bezier(.15,.8,.3,1) forwards}
-  @keyframes burst{from{transform:translate(-50%,-50%) scale(.3);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.15) rotate(var(--r));opacity:0}}
+  .burst{position:absolute;pointer-events:none;font-size:20px;animation:burst 1s cubic-bezier(.15,.8,.3,1) forwards}
+  @keyframes burst{from{transform:translate(-50%,-50%) scale(calc(var(--s,1) * .3));opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(calc(var(--s,1) * 1.1)) rotate(var(--r));opacity:0}}
 
   /* tocar a Zari o Frida: saltan y ladran */
   .pup{cursor:pointer}
@@ -209,27 +213,27 @@
   .gift.open .lid{transform:translate(90px,-220px) rotate(75deg);opacity:0}
   .gift.open .box{animation:boxGone .7s .35s ease-in forwards}
   @keyframes boxGone{to{transform:scale(0) rotate(15deg);opacity:0}}
-  .gift-glow{position:absolute;left:50%;bottom:40px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle,#fff 0,#ffd3e1 40%,transparent 70%);opacity:0;pointer-events:none}
-  .gift-zone.boom .gift-glow{animation:glow 1.1s ease-out}
-  @keyframes glow{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(70)}}
+  .gift .lid,.gift .box,.gift{will-change:transform}
   .reveal{display:none}
   .reveal.on{display:block}
   .reveal .pup{animation:popOut .9s cubic-bezier(.3,1.8,.5,1) both}
   .reveal .pup:nth-child(2){animation-delay:.15s}
   @keyframes popOut{from{transform:translateY(80px) scale(0) rotate(-30deg)}}
-  .big-heart{font-size:120px;line-height:1;margin:-6px 0 0;display:inline-block;animation:heartIn .8s .4s cubic-bezier(.3,1.8,.5,1) both, beat 1.1s 1.3s ease-in-out infinite}
+  .big-heart{font-size:120px;line-height:1;margin:-6px 0 0;display:inline-block;will-change:transform;animation:heartIn .8s .4s cubic-bezier(.3,1.8,.5,1) both, beat 1.1s 1.3s ease-in-out infinite}
   @keyframes heartIn{from{transform:scale(0) rotate(-40deg)}}
   @keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}45%{transform:scale(1.14)}}
-  .iloveyou{font-family:"Caveat",cursive;font-size:68px;font-weight:700;color:var(--pink-dd);margin:0;line-height:1.1;
-            clip-path:inset(0 100% 0 0);animation:write 1.8s 1s cubic-bezier(.6,.1,.4,1) forwards}
-  .reveal .muted{opacity:0;animation:fadeUp .8s 2.8s forwards}
+  .iloveyou{font-family:"Caveat",cursive;font-size:68px;font-weight:700;color:var(--pink-dd);margin:0;line-height:1.1}
+  /* "Te amo" aparece letra por letra (solo opacidad y transform: lo mueve la placa de video) */
+  .iloveyou .lt{display:inline-block;opacity:0;will-change:transform,opacity;animation:inkIn .55s cubic-bezier(.3,1.6,.5,1) forwards}
+  @keyframes inkIn{from{opacity:0;transform:translateY(14px) scale(.5) rotate(-10deg)}to{opacity:1;transform:none}}
+  .reveal .muted{opacity:0;animation:fadeUp .8s 2.2s forwards}
   @keyframes write{to{clip-path:inset(0 0 0 0)}}
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  .flash{position:fixed;inset:0;background:#fff;z-index:75;pointer-events:none;animation:flash 1s ease-out forwards}
-  @keyframes flash{from{opacity:.95}to{opacity:0}}
+  .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%,#fff 0,#ffe3ee 60%,#ffd3e1 100%);z-index:75;pointer-events:none;will-change:opacity;animation:flash .9s ease-out forwards}
+  @keyframes flash{from{opacity:.9}to{opacity:0}}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.item,.rv{opacity:1;transform:none}
-    .item .polaroid img{filter:none}.iloveyou{clip-path:none}.reveal .muted{opacity:1}.item .dot{transform:none}}
+    .item .polaroid img{filter:none}.iloveyou .lt{opacity:1}.reveal .muted{opacity:1}.item .dot{transform:none}}
 </style>
 </head>
 <body class="locked">
@@ -290,10 +294,11 @@
       <svg class="pup bob b2" style="width:96px;height:96px"><use href="#frida"/></svg>
     </div>
     <h1>Solo para vos 🔒</h1>
-    <p class="muted" style="margin:0">Zari y Frida custodian esta página.<br>Poné la contraseña secreta.</p>
+    <p class="muted" style="margin:0">Zari y Frida custodian esta página.<br>Elegí la fecha secreta 🗓️</p>
     <div class="pin" id="pin">
-      <input id="code" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="• • • •" aria-label="Contraseña">
+      <input id="code" type="date" min="2025-01-01" max="2027-12-31" aria-label="Fecha secreta">
     </div>
+    <button class="btn small" id="enter" style="margin-top:6px">Entrar 💗</button>
     <div class="hint" id="hint"></div>
     <button class="linkish" id="hintBtn">Necesito una pista 🙈</button>
   </div>
@@ -374,7 +379,6 @@
         <div class="lid"><span class="bow"></span></div>
         <div class="box"></div>
       </div>
-      <div class="gift-glow"></div>
     </div>
     <div class="reveal" id="reveal">
       <div class="pups">
@@ -400,11 +404,13 @@
 </main>
 
 <div class="confetti" id="confetti" aria-hidden="true"></div>
+<div class="fx" id="fx" aria-hidden="true"></div>
 
 <script>
   /* ⚙️ CONFIGURACIÓN — todo lo editable está acá arriba */
   const PHONE = "5493412505744";                          // tu número para canjear vales, ej "5493411234567"
-  const PASS = "2809";                       // contraseña: el día que nos pusimos de novios
+  const PASS = "2809";                       // para el link: ...?fecha=2809 entra directo
+  const PASS_DATE = "2026-09-28";            // fecha secreta del selector: 28 de septiembre de 2026
   const FIRST_DATE = new Date(2026, 4, 12, 21, 0);   // 12/5/2026, primera cita (mes 4 = mayo)
   const NOVIOS     = new Date(2026, 8, 28, 0, 0);    // 28/9/2026 (mes 8 = septiembre)
 
@@ -428,9 +434,10 @@
   const QUIZ = [
     { q:"¿Qué gusto de helado descubrí gracias a vos?", a:["Dulce de leche granizado","Pistacho","Frutilla","Chocolate suizo"], ok:1 },
     { q:"¿Qué prenda mía quedó con tu perfume?", a:["Mi buzo gris","La remera oversize","La campera de River","Mi gorra"], ok:2 },
-    { q:"Cuando dijiste que la barba te iba a pinchar, ¿qué te contesté?", a:["“Me la afeito ya”","“Te pincho de amor”","“Es parte del paquete”","“Ya te vas a acostumbrar”"], ok:1 },
+    { q:"¿Qué me regalaste por nuestro primer mes?", a:["Un buzo","Una remera y una malla","Una gorra","Un perfume"], ok:1 },
     { q:"¿Qué peli fuimos a ver al cine en julio?", a:["Cars","Verity","Toy Story 5","Intensamente"], ok:2 },
     { q:"¿De dónde era el matambre con crema que comimos?", a:["Rugantino","Casa Popular","Manush","Viejo Balcón"], ok:3 },
+    { q:"¿Cómo le digo a Zari?", a:["Garrapata","Bichita","Chinchulina","Pompón"], ok:2 },
   ];
 
   const COUPONS = [
@@ -439,7 +446,7 @@
     { e:"🐩", bg:"var(--mint)",  t:"Yo me ocupo de Zari los domingos", p:"Paseo, mimos y lo que necesite. Vos descansás." },
     { e:"🍸", bg:"var(--sky)",   t:"Vermut y picada", p:"Pichincha con tónica y una picada caliente. Yo me encargo de todo." },
     { e:"☕", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro. Invito yo." },
-    { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía.", bonus:true },
+    { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía." },
     { e:"💗", bg:"var(--pink)",  t:"Comodín", p:"Vale por lo que vos quieras. Lo que sea.", bonus:true },
   ];
 
@@ -458,23 +465,24 @@
       s.style.left = Math.random() * 100 + "%";
       s.style.animationDuration = 14 + Math.random() * 14 + "s";
       s.style.animationDelay = -Math.random() * 28 + "s";
-      s.style.fontSize = 14 + Math.random() * 14 + "px";
+      s.style.setProperty("--s", (.7 + Math.random() * .7).toFixed(2));   // tamaño con scale, no con font-size (mucho más liviano)
       f.appendChild(s);
     }
   })();
 
-  function confetti(n = 45) {
-    const c = $("#confetti"), bits = ["💗","🐾","💕","🌸","✨","🎉"];
+  function confetti(n = 36) {
+    const c = $("#confetti"), bits = ["💗","🐾","💕","🌸","✨","🎉"], frag = document.createDocumentFragment(), made = [];
     for (let i = 0; i < n; i++) {
       const s = document.createElement("span");
       s.textContent = bits[i % bits.length];
       s.style.left = Math.random() * 100 + "%";
-      s.style.fontSize = 16 + Math.random() * 16 + "px";
+      s.style.setProperty("--s", (.75 + Math.random() * .6).toFixed(2));
       s.style.animationDuration = 2.4 + Math.random() * 2.2 + "s";
       s.style.animationDelay = Math.random() * .8 + "s";
-      c.appendChild(s);
-      setTimeout(() => s.remove(), 5500);
+      frag.appendChild(s); made.push(s);
     }
+    c.appendChild(frag);                                   // una sola inserción en vez de una por partícula
+    setTimeout(() => made.forEach(s => s.remove()), 5600);
   }
 
   // Abrí la página con ?reset al final del link para borrar el progreso (útil después de probarla)
@@ -513,16 +521,18 @@
   // Link con la contraseña: ...?fecha=2809 (también acepta 28-09 o 28/09) entra directo
   const urlFecha = (new URLSearchParams(location.search).get("fecha") || "").replace(/\D/g, "");
   if (store.get("in", false)) { $("#gate").classList.add("gone"); document.body.classList.remove("locked"); startShow(); }
-  else if (urlFecha === PASS) unlock();
-  codeIn.addEventListener("input", () => {
-    codeIn.value = codeIn.value.replace(/\D/g, "").slice(0, 4);
-    if (codeIn.value.length < 4) return;
-    if (codeIn.value === PASS) { codeIn.blur(); unlock(); return; }
+  else if (urlFecha === PASS || urlFecha === PASS_DATE.replace(/\D/g, "")) unlock();
+  // la fecha correcta: 28 de septiembre de 2026
+  function checkDate() {
+    if (!codeIn.value) { $("#hint").textContent = "Elegí una fecha primero 🗓️"; return; }
+    if (codeIn.value === PASS_DATE) { codeIn.blur(); unlock(); return; }
     $("#pin").classList.remove("bad"); void $("#pin").offsetWidth; $("#pin").classList.add("bad");
-    $("#hint").textContent = "Mmm, no 🙈 Probá de nuevo";
-    setTimeout(() => { codeIn.value = ""; }, 450);
-  });
-  $("#hintBtn").addEventListener("click", () => { $("#hint").textContent = "El día y el mes en que nos pusimos de novios (DDMM) 💗"; });
+    $("#hint").textContent = "Mmm, esa no es 🙈 Probá de nuevo";
+    if (navigator.vibrate) navigator.vibrate(60);
+  }
+  $("#enter").addEventListener("click", checkDate);
+  codeIn.addEventListener("keydown", e => { if (e.key === "Enter") checkDate(); });
+  $("#hintBtn").addEventListener("click", () => { $("#hint").textContent = "El día que nos pusimos de novios 💗"; });
 
   /* ---------- contadores ---------- */
   const pad = n => String(n).padStart(2, "0");
@@ -554,20 +564,23 @@
 
   /* ---------- efectos ---------- */
   const rand = (a, b) => a + Math.random() * (b - a);
+  const fx = $("#fx");
   function burst(x, y, n = 14, bits = ["💗","💕","✨","🐾","💖"], spread = 120) {
+    const frag = document.createDocumentFragment(), made = [];
     for (let i = 0; i < n; i++) {
       const s = document.createElement("span");
-      const ang = rand(0, Math.PI * 2), dist = rand(spread * .4, spread);
+      const ang = (i / n) * Math.PI * 2 + rand(-.3, .3), dist = rand(spread * .45, spread);
       s.className = "burst"; s.textContent = bits[i % bits.length];
       s.style.left = x + "px"; s.style.top = y + "px";
-      s.style.fontSize = rand(14, 28) + "px";
+      s.style.setProperty("--s", rand(.8, 1.3).toFixed(2));
       s.style.setProperty("--dx", Math.cos(ang) * dist + "px");
       s.style.setProperty("--dy", Math.sin(ang) * dist + "px");
       s.style.setProperty("--r", rand(-90, 90) + "deg");
-      s.style.animationDuration = rand(.8, 1.4) + "s";
-      document.body.appendChild(s);
-      setTimeout(() => s.remove(), 1500);
+      s.style.animationDuration = rand(.9, 1.3) + "s";
+      frag.appendChild(s); made.push(s);
     }
+    fx.appendChild(frag);
+    setTimeout(() => made.forEach(s => s.remove()), 1400);
   }
   // corazoncito en cada toque
   let lastTap = 0;
@@ -577,7 +590,7 @@
     s.className = "tap-heart"; s.textContent = ["💗","💕","🐾","✨"][Math.floor(Math.random() * 4)];
     s.style.left = e.clientX + "px"; s.style.top = e.clientY + "px";
     s.style.setProperty("--dx", rand(-30, 30) + "px"); s.style.setProperty("--r", rand(-40, 40) + "deg");
-    document.body.appendChild(s); setTimeout(() => s.remove(), 1000);
+    fx.appendChild(s); setTimeout(() => s.remove(), 1000);
   });
   // Zari y Frida saltan y ladran si las tocás
   const barksZ = ["¡Guau! 💗", "¡Te amo, mami!", "¡Mimos! 🐩", "Guau guau 🎀"];
@@ -627,7 +640,7 @@
     $("#unlock").classList.remove("on");
     if (qi >= QUIZ.length) {
       $("#qbox").innerHTML = `<p class="q">¡Me conocés de memoria! 🏆</p>
-        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa <b>dos vales bonus</b> 💗</p>`;
+        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa el <b>Comodín</b> 💗</p>`;
       return;
     }
     const Q = QUIZ[qi];
@@ -701,6 +714,13 @@
   }
 
   /* ---------- regalo sorpresa ---------- */
+  // "Te amo" en letras sueltas
+  (() => {
+    const el = $(".iloveyou"); let i = 0;
+    el.innerHTML = Array.from(el.textContent).map(ch => ch === " " ? " " :
+      `<span class="lt" style="animation-delay:${(1 + i++ * .16).toFixed(2)}s">${ch}</span>`).join("");
+  })();
+
   let taps = 0;
   const gift = $("#gift"), hints = ["Tocá el regalo 🎁", "¡Más fuerte! 💪", "¡Una vez más! 🙈"];
   function tapGift() {
@@ -718,22 +738,29 @@
     // ¡se abre!
     $("#giftHint").textContent = "💥";
     gift.classList.remove("idle", "s1", "s2"); gift.classList.add("open");
-    $("#giftZone").classList.add("boom");
     const r = gift.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    // si el regalo quedó muy arriba o muy abajo, lo centramos ANTES de la explosión (sin scroll durante la animación)
+    let oy = cy;
+    if (r.top < 70 || r.bottom > innerHeight - 260) {
+      document.documentElement.style.scrollBehavior = "auto";
+      window.scrollTo(0, Math.max(0, scrollY + cy - innerHeight * .4));
+      document.documentElement.style.scrollBehavior = "";
+      oy = gift.getBoundingClientRect().top + r.height / 2;
+    }
+    const ox = cx;
     setTimeout(() => {
       const fl = document.createElement("div"); fl.className = "flash"; document.body.appendChild(fl);
-      setTimeout(() => fl.remove(), 1000);
-      burst(cx, cy, 60, ["💗","💖","💕","✨","🐾","🌸"], 260);
-    }, 300);
-    // fuegos artificiales de corazones
-    for (let k = 0; k < 6; k++) setTimeout(() => burst(rand(40, innerWidth - 40), rand(80, innerHeight * .6), 22, ["💗","💕","✨","💖"], 140), 700 + k * 380);
-    setTimeout(() => confetti(80), 600);
+      setTimeout(() => fl.remove(), 950);
+      burst(ox, oy, 30, ["💗","💖","💕","✨","🐾","🌸"], 230);
+    }, 280);
+    // fuegos artificiales de corazones, de a poco
+    for (let k = 0; k < 4; k++) setTimeout(() => burst(rand(50, innerWidth - 50), rand(90, innerHeight * .55), 12, ["💗","💕","✨","💖"], 120), 1000 + k * 520);
+    setTimeout(() => confetti(36), 1300);
     setTimeout(() => {
       $("#giftZone").style.display = "none";
       $("#giftHint").textContent = "";
       $("#reveal").classList.add("on");
-      $("#reveal").scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 1100);
+    }, 1000);
   }
   gift.addEventListener("click", tapGift);
   gift.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") tapGift(); });
