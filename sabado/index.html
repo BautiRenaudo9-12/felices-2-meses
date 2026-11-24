@@ -73,7 +73,9 @@
   /* ---------- HERO ---------- */
   .hero{padding-top:40px}
   .polaroid{background:#fff;padding:10px 10px 14px;border-radius:6px;box-shadow:0 14px 30px -14px rgba(120,60,90,.45);display:inline-block}
-  .polaroid img{display:block;width:100%;height:auto;border-radius:3px}
+  .polaroid img,.polaroid video{display:block;width:100%;height:auto;border-radius:3px}
+  .item .polaroid video{filter:blur(10px) sepia(.7) brightness(1.4);transition:filter 1.6s .45s ease-out}
+  .item.in .polaroid video{filter:none}
   .polaroid figcaption{font-family:"Caveat",cursive;font-size:24px;color:var(--ink);text-align:center;margin-top:6px;line-height:1}
   .hero .polaroid{width:78%;max-width:300px;transform:rotate(-3deg);margin:6px 0 18px}
   .counters{display:grid;gap:12px;margin-top:8px}
@@ -233,7 +235,7 @@
   @keyframes flash{from{opacity:.9}to{opacity:0}}
 
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.item,.rv{opacity:1;transform:none}
-    .item .polaroid img{filter:none}.iloveyou .lt{opacity:1}.reveal .muted{opacity:1}.item .dot{transform:none}}
+    .item .polaroid img,.item .polaroid video{filter:none}.iloveyou .lt{opacity:1}.reveal .muted{opacity:1}.item .dot{transform:none}}
 </style>
 </head>
 <body class="locked">
@@ -418,7 +420,7 @@
     { d:"22 de agosto", t:"Atardecer en la isla", p:"Mates y arena. Una de mis fotos favoritas.", img:"isla2.jpg", cap:"isla 🌅" },
     { d:"7 de septiembre", t:"Atardecer con Frida", p:"Vos, Frida y el sol bajando en La Florida.", img:"plaza.jpg", cap:"la más linda del universo" },
     { d:"26 de septiembre", t:"Más Isla y lancha", p:"Sanguchitos y el puente de fondo.", img:"puente.jpg", cap:"isla y lancha 🚤" },
-    { d:"28 de septiembre", t:"¡Novios! 💗", p:"La mejor noticia. Al otro día te escribí: «Qué lindo ser tu novio». Lo sigo pensando todos los días.", art:"💗✨💕", bg:"var(--pink)", special:true },
+    { d:"28 de septiembre", t:"¡Novios! 💗", p:"La mejor noticia. Al otro día te escribí: «Qué lindo ser tu novio». Lo sigo pensando todos los días.", vid:"novios.mp4", poster:"novios.jpg", cap:"primeros días de novios 💗", special:true },
     { d:"26 de octubre", t:"Tarde de jardín, los cuatro", p:"Vos, yo, Zari y Frida.", img:"jardin.jpg", cap:"la familia 🐾" },
     { d:"28 de octubre", t:"Nuestro primer mes", p:"Merienda, pinceles y regalitos. Vos pintás mucho mejor, pero yo le puse onda.", img:"merienda.jpg", cap:"1 mes 🎨" },
     { d:"30 de octubre", t:"Hamaca con Zari", p:"Sol, hamaca y Zari.", img:"hamaca.jpg", cap:"mis dos reinas 👑" },
@@ -442,6 +444,7 @@
     { e:"🍸", bg:"var(--sky)",   t:"Vermut y picada", p:"Pichincha con tónica y una picada caliente." },
     { e:"☕", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro." },
     { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía.", bonus:true },
+    { e:"🧖‍♀️", bg:"var(--lav)",  t:"Día de Spa y Relax en Ros Tower", p:"Un día entero para relajarnos los dos.", bonus:true },
     { e:"💗", bg:"var(--pink)",  t:"Comodín", p:"Vale por lo que vos quieras. Lo que sea.", bonus:true },
   ];
 
@@ -610,7 +613,8 @@
       <span class="date">${it.d}</span>
       <div class="card">
         <h3>${it.t}</h3><p>${it.p}</p>
-        ${it.img ? `<figure class="polaroid"><img src="fotos/${it.img}" alt="${it.t}" loading="lazy"><figcaption>${it.cap || ""}</figcaption></figure>`
+        ${it.vid ? `<figure class="polaroid"><video src="fotos/${it.vid}" poster="fotos/${it.poster}" muted loop playsinline autoplay preload="metadata"></video><figcaption>${it.cap || ""}</figcaption></figure>`
+        : it.img ? `<figure class="polaroid"><img src="fotos/${it.img}" alt="${it.t}" loading="lazy"><figcaption>${it.cap || ""}</figcaption></figure>`
                  : `<div class="art" style="background:${it.bg}">${it.art}</div>`}
       </div>`;
     tl.appendChild(el);
@@ -633,7 +637,7 @@
     $("#unlock").classList.remove("on");
     if (qi >= QUIZ.length) {
       $("#qbox").innerHTML = `<p class="q">¡Me conocés de memoria! 🏆</p>
-        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa <b>dos vales bonus</b> 💗</p>`;
+        <p class="muted center" style="margin:0">Desbloqueaste todos los vales, y de yapa <b>tres vales bonus</b> 💗</p>`;
       return;
     }
     const Q = QUIZ[qi];
