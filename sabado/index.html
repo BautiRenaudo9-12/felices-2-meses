@@ -234,6 +234,30 @@
   .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%,#fff 0,#ffe3ee 60%,#ffd3e1 100%);z-index:75;pointer-events:none;will-change:opacity;animation:flash .9s ease-out forwards}
   @keyframes flash{from{opacity:.9}to{opacity:0}}
 
+  /* ---------- JUEGUITO: ZARI Y FRIDA ATRAPAN MIMOS ---------- */
+  .game{position:relative;height:440px;border-radius:26px;overflow:hidden;border:2.5px solid var(--line);box-shadow:var(--shadow);
+        background:linear-gradient(180deg,#d6ecff 0%,#ffe3ee 68%,#d2f3e6 100%);touch-action:none;user-select:none;-webkit-user-select:none}
+  .game::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:#bfe9d4;border-top:3px solid #a8dfc4}
+  .game canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  .g-hud{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;gap:6px;z-index:2;pointer-events:none}
+  .g-hud span{background:rgba(255,255,255,.85);border-radius:999px;padding:4px 10px;font:600 16px "Fredoka",sans-serif;color:var(--ink)}
+  .g-pup{position:absolute;left:0;bottom:12px;width:86px;height:86px;margin-left:-43px;z-index:2;pointer-events:none;will-change:transform}
+  .g-pup svg{width:100%;height:100%;display:block;transform-origin:50% 100%}
+  .g-pup.bump svg{animation:gBump .25s}
+  .g-pup.hurt svg{animation:gHurt .5s}
+  @keyframes gBump{50%{transform:scale(1.14,.88)}}
+  @keyframes gHurt{25%,75%{transform:translateX(-6px) rotate(-8deg);opacity:.5}50%{transform:translateX(6px) rotate(8deg)}}
+  .game.shake{animation:shake .4s}
+  .g-overlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+             background:rgba(255,246,249,.9);text-align:center;padding:16px;transition:opacity .3s}
+  .g-overlay.hide{opacity:0;pointer-events:none}
+  .g-overlay h3{margin:0;font-size:24px;color:var(--pink-dd)}
+  .g-overlay p{margin:0;line-height:1.5}
+  .g-pick{display:flex;gap:14px}
+  .g-pick button{appearance:none;border:2.5px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px 10px;font:600 17px "Fredoka",sans-serif;color:var(--ink);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s}
+  .g-pick button:active{transform:scale(.95)}
+  .g-pick button svg{width:84px;height:84px;display:block;margin:0 auto 2px}
+
   /* ---------- INTRO ROMÁNTICA (después de la fecha secreta) ---------- */
   .intro{position:fixed;inset:0;z-index:49;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px 16px;
          background:linear-gradient(180deg,#2e2350 0%,#6b3f7f 50%,#e893b5 100%);color:#fff;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -439,6 +463,25 @@
     <h2>Tu talonario de vales</h2>
     <p class="sub">Canjealos cuando quieras: me llega un mensajito y yo cumplo 🫡</p>
     <div class="coupons" id="coupons"></div>
+  </section>
+
+  <!-- =============== JUEGUITO =============== -->
+  <section class="block" id="juego">
+    <h2>Jugá con Zari y Frida</h2>
+    <p class="sub">Atrapá los mimos 💗 y esquivá los jejenes 🦟</p>
+    <div class="game" id="game">
+      <canvas id="gc"></canvas>
+      <div class="g-hud"><span id="gScore">💗 0</span><span id="gTime">30s</span><span id="gLives">❤️❤️❤️</span></div>
+      <div class="g-pup" id="gPup"><svg><use href="#zari"/></svg></div>
+      <div class="g-overlay" id="gOver">
+        <h3 id="gTitle">¿Con quién jugás?</h3>
+        <div class="g-pick">
+          <button data-p="zari"><svg><use href="#zari"/></svg>Zari</button>
+          <button data-p="frida"><svg><use href="#frida"/></svg>Frida</button>
+        </div>
+        <p class="muted" id="gMsg">Juntá <b>20 mimos</b> en 30 segundos.<br>Arrastrá el dedo para moverte 👆</p>
+      </div>
+    </div>
   </section>
 
   <!-- =============== SORPRESA =============== -->
@@ -848,7 +891,7 @@
     tl.appendChild(el);
   });
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15 });
-  document.querySelectorAll("section.block:not(.hero) h2, section.block:not(.hero) .sub, .quiz, .gift-zone, .final h1, .final .polaroid, .final p, .final .btn")
+  document.querySelectorAll("section.block:not(.hero) h2, section.block:not(.hero) .sub, .quiz, .game, .gift-zone, .final h1, .final .polaroid, .final p, .final .btn")
     .forEach(el => el.classList.add("rv"));
   document.querySelectorAll(".item, .rv").forEach(el => io.observe(el));
 
@@ -937,6 +980,136 @@
     const msg = `🎟️ ¡Bau! Quiero canjear mi vale:\n${c.e} ${c.t}\n\n${c.p}\n\nTu gordita 🫶🏻`;
     window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`, "_blank");
   }
+
+  /* ---------- jueguito: atrapar mimos con Zari o Frida ---------- */
+  (() => {
+    const game = $("#game"), cv = $("#gc"), ctx = cv.getContext("2d"), pupEl = $("#gPup"), over = $("#gOver");
+    const GOAL = 20, DUR = 30;
+    const TYPES = [
+      { e: "💗", pts: 1, w: 6 },
+      { e: "🦴", pts: 1, w: 3 },
+      { e: "🍦", pts: 2, w: 2, label: "+2 pistacho" },
+      { e: "🦟", pts: 0, w: 2, bad: true },            // los jejenes 😵
+    ];
+    const WEIGHT = TYPES.reduce((a, b) => a + b.w, 0);
+    const GOOD_WEIGHT = TYPES.filter(x => !x.bad).reduce((a, b) => a + b.w, 0);
+    let dpr = 1, W = 0, H = 0, items = [], pops = [], px = 0, tx = 0, score = 0, lives = 3, t = 0,
+        running = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, best = store.get("gBest", 0);
+    // cada emoji se dibuja UNA vez en un canvas chiquito y después se copia (rápido y fluido)
+    const sprites = {};
+    function sprite(e) {
+      if (sprites[e]) return sprites[e];
+      const c = document.createElement("canvas"), s = Math.round(46 * dpr);
+      c.width = c.height = s;
+      const x = c.getContext("2d");
+      x.font = `${Math.round(34 * dpr)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(e, s / 2, s / 2 + 2 * dpr);
+      return (sprites[e] = c);
+    }
+    function size() {
+      dpr = Math.min(2, devicePixelRatio || 1);
+      const r = game.getBoundingClientRect(); W = r.width; H = r.height;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      for (const k in sprites) delete sprites[k];
+    }
+    function hud() {
+      $("#gScore").textContent = `💗 ${score}`;
+      $("#gLives").textContent = "❤️".repeat(Math.max(0, lives)) + "🤍".repeat(3 - Math.max(0, lives));
+    }
+    // los primeros 3 segundos no hay jejenes, para que arranque tranqui
+    function pickType() {
+      const pool = t < 3 ? TYPES.filter(x => !x.bad) : TYPES;
+      let r = Math.random() * (t < 3 ? GOOD_WEIGHT : WEIGHT);
+      for (const ty of pool) if ((r -= ty.w) < 0) return ty;
+      return TYPES[0];
+    }
+    function flash(cls) { pupEl.classList.remove("bump", "hurt"); void pupEl.offsetWidth; pupEl.classList.add(cls); }
+    function start(who) {
+      pupEl.querySelector("use").setAttribute("href", "#" + who);
+      size();
+      items = []; pops = []; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1;
+      px = tx = W / 2; running = true;
+      over.classList.add("hide"); hud();
+      last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+    }
+    function end() {
+      running = false;
+      const win = score >= GOAL, record = score > best;
+      if (record) { best = score; store.set("gBest", best); }
+      $("#gTitle").textContent = win ? "¡Ganaste! 🏆" : (lives <= 0 ? "¡Te picaron los jejenes! 🦟" : "¡Se terminó el tiempo! ⏰");
+      $("#gMsg").innerHTML = `Juntaste <b>${score}</b> mimos${record && score > 0 ? " · ¡récord nuevo!" : ` · récord: <b>${best}</b>`}<br>` +
+        (win ? "Zari y Frida dicen que sos la mejor 💗" : `Necesitás ${GOAL} para ganar. ¿Otra? 👇`);
+      over.classList.remove("hide");
+      if (win) { confetti(40); const r = game.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, 24); }
+    }
+    function loop(now) {
+      if (!running) return;
+      const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+      // aparecen cosas cada vez más seguido y más rápido
+      spawnT -= dt;
+      if (spawnT <= 0) {
+        spawnT = Math.max(.3, .78 - t * .016);
+        const ty = pickType();
+        items.push({ ty, x: 26 + Math.random() * (W - 52), y: -28, vy: (150 + t * 7) * (.85 + Math.random() * .4), ph: Math.random() * 6 });
+      }
+      px += (tx - px) * Math.min(1, dt * 14);
+      pupEl.style.transform = `translateX(${px.toFixed(1)}px)`;
+      ctx.clearRect(0, 0, W, H);
+      const catchY = H - 78;
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.y += it.vy * dt;
+        // a los jejenes hay que tocarlos más de cerca para que piquen (perdona los roces)
+        if (it.y > catchY - 12 && it.y < catchY + 34 && Math.abs(it.x - px) < (it.ty.bad ? 30 : 46)) {
+          items.splice(i, 1);
+          if (it.ty.bad) {
+            lives--; flash("hurt");
+            game.classList.remove("shake"); void game.offsetWidth; game.classList.add("shake");
+            if (navigator.vibrate) navigator.vibrate(80);
+            pops.push({ x: it.x, y: catchY - 24, txt: "¡Jején! 😵", life: 1 });
+          } else {
+            score += it.ty.pts; flash("bump");
+            pops.push({ x: it.x, y: catchY - 24, txt: it.ty.label || "+" + it.ty.pts, life: 1 });
+          }
+          hud();
+          continue;
+        }
+        if (it.y > H + 30) { items.splice(i, 1); continue; }
+        ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(t * 3 + it.ph) * .25);
+        ctx.drawImage(sprite(it.ty.e), -23, -23, 46, 46); ctx.restore();
+      }
+      ctx.font = '600 18px "Fredoka", sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = "#e5648f";
+      for (let i = pops.length - 1; i >= 0; i--) {
+        const q = pops[i]; q.life -= dt * 1.4; q.y -= dt * 50;
+        if (q.life <= 0) { pops.splice(i, 1); continue; }
+        ctx.globalAlpha = q.life; ctx.fillText(q.txt, q.x, q.y); ctx.globalAlpha = 1;
+      }
+      const sec = Math.max(0, Math.ceil(DUR - t));
+      if (sec !== shownSec) { shownSec = sec; $("#gTime").textContent = sec + "s"; }
+      if (lives <= 0 || t >= DUR) { end(); return; }
+      raf = requestAnimationFrame(loop);
+    }
+    const move = e => {
+      if (!running) return;
+      const r = game.getBoundingClientRect();
+      tx = Math.max(40, Math.min(W - 40, e.clientX - r.left));
+    };
+    game.addEventListener("pointerdown", move);
+    game.addEventListener("pointermove", move);
+    addEventListener("keydown", e => {
+      if (!running) return;
+      if (e.key === "ArrowLeft") tx = Math.max(40, tx - 50);
+      if (e.key === "ArrowRight") tx = Math.min(W - 40, tx + 50);
+    });
+    document.addEventListener("visibilitychange", () => {      // si sale de la app, se pausa
+      if (!running) return;
+      if (document.hidden) cancelAnimationFrame(raf);
+      else { last = performance.now(); raf = requestAnimationFrame(loop); }
+    });
+    over.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); start(b.dataset.p); }));
+    addEventListener("resize", () => { if (!running) size(); });
+  })();
 
   /* ---------- regalo sorpresa ---------- */
   // "Te amo" en letras sueltas
