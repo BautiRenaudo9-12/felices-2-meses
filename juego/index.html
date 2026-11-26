@@ -357,48 +357,73 @@
         running = false, counting = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, shownPow = -1,
         power = 0, combo = 0, lastCatch = 0, dir = 1, who = "zari", stats = PUPS.zari, best = store.get("gBest", 0);
 
-    /* --- sonidos hechos con código (sin archivos), apagados de entrada --- */
-    let snd = store.get("gSnd", false), ac = null;
+    /* --- sonidos hechos con código (sin archivos), apagados de entrada ---
+       Todo pasa por una "consola" suave: un filtro que corta los agudos chillones,
+       un compresor que empareja el volumen y un poquito de reverb para que suene cálido. */
+    let snd = store.get("gSnd", false), ac = null, bus = null, verb = null;
     let mode = store.get("gMode", "desafio"), milestone = 0;
     const relax = () => mode === "tranqui";
     function audio() {
-      if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+      if (!ac) {
+        try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+        const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800; lp.Q.value = .5;
+        const comp = ac.createDynamicsCompressor();
+        comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 3; comp.attack.value = .004; comp.release.value = .2;
+        bus = ac.createGain(); bus.gain.value = .85;
+        bus.connect(lp); lp.connect(comp); comp.connect(ac.destination);
+        // reverb corta (sala chiquita) hecha con ruido que se apaga de a poco
+        const len = Math.floor(ac.sampleRate * 1.3), ir = ac.createBuffer(2, len, ac.sampleRate);
+        for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+        const conv = ac.createConvolver(); conv.buffer = ir;
+        verb = ac.createGain(); verb.gain.value = .22; verb.connect(conv); conv.connect(lp);
+      }
       if (ac.state === "suspended") ac.resume();
       return ac;
     }
-    function tone(f, dur, type = "sine", vol = .15, f2 = null, when = 0, att = .012) {
+    // una nota suave: dos osciladores apenas desafinados (suena más "lleno"), ataque y cola redondeados
+    function tone(f, dur, type = "sine", vol = .15, f2 = null, when = 0, att = .008, wet = .5) {
       if (!snd) return; const a = audio(); if (!a) return;
-      const t0 = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
-      o.type = type; o.frequency.setValueAtTime(f, t0);
-      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+      const t0 = a.currentTime + when, g = a.createGain();
       g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + att); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-      o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + .03);
+      [-4, 4].forEach(det => {
+        const o = a.createOscillator(); o.type = type; o.detune.value = det;
+        o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur * .8);
+        o.connect(g); o.start(t0); o.stop(t0 + dur + .05);
+      });
+      g.connect(bus); if (wet) { const s = a.createGain(); s.gain.value = wet; g.connect(s); s.connect(verb); }
     }
-    function noise(dur, vol = .2, from = 1800, to = 400, when = 0) {
+    // campanita: la nota + su octava bien bajita
+    function bell(f, dur = .8, vol = .1, when = 0) { tone(f, dur, "sine", vol, null, when, .005, .8); tone(f * 2, dur * .6, "sine", vol * .22, null, when, .005, .8); }
+    function noise(dur, vol = .2, from = 1800, to = 400, when = 0, type = "bandpass", q = 1.3) {
       if (!snd) return; const a = audio(); if (!a) return;
       const t0 = a.currentTime + when, len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
       const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
-      s.buffer = b; f.type = "bandpass"; f.Q.value = 1.3;
+      s.buffer = b; f.type = type; f.Q.value = q;
       f.frequency.setValueAtTime(from, t0); f.frequency.exponentialRampToValueAtTime(to, t0 + dur);
-      g.gain.value = vol; s.connect(f).connect(g).connect(a.destination); s.start(t0);
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      s.connect(f).connect(g).connect(bus); s.start(t0);
     }
     const sfx = {
-      pop: () => tone(620, .09, "sine", .18, 1040),
-      bone: () => tone(440, .1, "triangle", .2, 700),
-      power: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .12, "square", .07, null, i * .07)),
-      hurt: () => tone(220, .28, "sawtooth", .09, 90),
-      combo: () => { tone(880, .09, "triangle", .15, 1320); tone(1320, .12, "triangle", .12, 1760, .08); },
-      beep: hi => tone(hi ? 1046 : 659, hi ? .25 : .12, "square", .07),
-      bark: (when = 0) => { tone(720, .09, "square", .1, 380, when); noise(.08, .25, 1600, 700, when);
-                            tone(760, .1, "square", .1, 400, when + .14); noise(.09, .25, 1700, 700, when + .14); },
-      slurp: () => noise(.45, .35, 450, 2400),
-      win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .18, "triangle", .14, null, i * .1)),
-      boss: () => { tone(196, .25, "square", .09); tone(147, .45, "square", .09, null, .26); },
-      hiss: () => noise(.12, .12, 2600, 1400),
-      poof: () => { noise(.18, .16, 900, 3200); tone(880, .2, "sine", .07, 1760); },
-      life: () => [659, 880, 1047].forEach((f, i) => tone(f, .15, "sine", .14, null, i * .08)),
-      chime: () => [784, 988, 1175].forEach((f, i) => tone(f, .6, "sine", .1, null, i * .12, .02)),
+      pop:   () => { tone(392, .16, "sine", .16, 587, 0, .004, .3); tone(196, .12, "triangle", .06, 294, 0, .004, 0); },      // "blup" redondo
+      bone:  () => { tone(294, .12, "triangle", .14, 220, 0, .003, .2); noise(.04, .08, 1400, 900, 0, "bandpass", 3); },      // toc de madera
+      power: () => [392, 494, 587, 784].forEach((f, i) => bell(f, .5, .09, i * .07)),                                          // arpegio brillante pero suave
+      hurt:  () => { tone(196, .3, "sine", .18, 98, 0, .004, .2); noise(.16, .1, 500, 180, 0, "lowpass", .7); },              // "bonk" grave
+      combo: () => { bell(523, .5, .1); bell(784, .6, .09, .09); },
+      beep:  hi => hi ? bell(587, .5, .12) : tone(392, .16, "sine", .1, null, 0, .006, .3),                                 // cuenta regresiva
+      bark:  (when = 0) => {                                                                                                   // "guau" más grave y redondo
+        [0, .17].forEach(dt => {
+          tone(330, .14, "triangle", .1, 196, when + dt, .006, .15);
+          noise(.12, .12, 850, 450, when + dt, "bandpass", 2.5);
+        });
+      },
+      slurp: () => { noise(.5, .16, 300, 1300, 0, "bandpass", 4); tone(180, .45, "sine", .05, 320, 0, .02, .2); },            // lengüetazo
+      win:   () => [392, 494, 587, 784, 988].forEach((f, i) => bell(f, .7, .1, i * .1)),
+      boss:  () => { tone(110, .4, "sine", .2, 98, 0, .006, .4); tone(82, .6, "sine", .2, 73, .28, .006, .4); noise(.25, .08, 300, 120, 0, "lowpass", .7); },
+      hiss:  () => noise(.14, .035, 1600, 900, 0, "bandpass", 1),                                                              // aviso de ataque, casi imperceptible
+      poof:  () => { noise(.22, .08, 500, 1500, 0, "bandpass", 1.5); tone(440, .25, "sine", .04, 660, 0, .01, .6); },
+      life:  () => [523, 659, 784].forEach((f, i) => bell(f, .6, .1, i * .08)),
+      chime: () => [587, 740, 880].forEach((f, i) => bell(f, .9, .08, i * .12)),
     };
     // música suavecita para el modo tranqui (Do – La menor – Fa – Sol, como una cajita de música)
     const PROG = [[261.6, 329.6, 392], [220, 261.6, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7]];
@@ -408,8 +433,8 @@
       beat = 0;
       musicTimer = setInterval(() => {
         const ch = PROG[Math.floor(beat / 8) % 4];
-        tone(ch[beat % 3] * (beat % 8 >= 4 ? 2 : 1), 1.2, "sine", .04, null, 0, .09);
-        if (beat % 8 === 0) tone(ch[0] / 2, 3.3, "triangle", .03, null, 0, .4);
+        tone(ch[beat % 3] * (beat % 8 >= 4 ? 2 : 1), 1.3, "sine", .035, null, 0, .09, .9);
+        if (beat % 8 === 0) tone(ch[0] / 2, 3.4, "triangle", .028, null, 0, .4, .6);
         beat++;
       }, 430);
     }
