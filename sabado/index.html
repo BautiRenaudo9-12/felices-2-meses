@@ -143,6 +143,17 @@
   .coupon{display:flex;background:#fff;border:2.5px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;position:relative;transition:.3s}
   .coupon .l{flex:0 0 84px;display:grid;place-items:center;font-size:36px;border-right:2.5px dashed var(--line)}
   .coupon .r{padding:12px 14px;flex:1;min-width:0}
+  /* vales especiales: borde dorado, brillo y un poco más grandes */
+  .coupon.vip{border:3px solid #ffcf5c;background:linear-gradient(160deg,#fffaf0,#fff 60%);
+               box-shadow:0 0 0 4px rgba(255,207,92,.22),0 12px 30px -10px rgba(255,170,60,.55)}
+  .coupon.vip .l{flex-basis:96px;font-size:42px;border-right-color:#ffe3a3}
+  .coupon.vip h3{font-size:20px}
+  .coupon.vip small{color:#c98a00}
+  .coupon.vip::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);transform:translateX(-120%);
+    animation:starShine 3.6s ease-in-out infinite}
+  .coupon.vip.locked::before{display:none}
+  @keyframes starShine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
   .coupon small{font:600 11px "Fredoka";letter-spacing:.08em;text-transform:uppercase;color:var(--pink-dd)}
   .coupon h3{margin:2px 0 4px;font-size:18px}
   .coupon p{margin:0 0 8px;font-size:14px;color:var(--ink-soft);line-height:1.4}
@@ -538,11 +549,13 @@
     { e:"💆‍♀️", bg:"var(--lav)",   t:"Masajes antes de dormir", p:"Con la cosita para los masajes. Sin límite de tiempo." },
     { e:"🐩", bg:"var(--mint)",  t:"Yo me ocupo de Zari los domingos", p:"Paseo, mimos y lo que necesite. Vos descansás." },
     { e:"🍸", bg:"var(--sky)",   t:"Vermut y picada", p:"Pichincha con tónica y una picada caliente." },
-    { e:"🧖‍♀️", bg:"var(--lav)",  t:"Día de Spa y Relax en Ros Tower", p:"Un día entero para relajarnos los dos." },
-    { e:"🍽️", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro.", bonus:true },
+    { e:"🧖‍♀️", bg:"var(--lav)",  t:"Día de Spa y Relax en Ros Tower", p:"Un día entero para relajarnos los dos.", star:true },
+    { e:"🍽️", bg:"var(--butter)", t:"Cena en Charmat", p:"Mesa para dos, sin apuro.", bonus:true, star:true },
     { e:"🪴", bg:"var(--pink)",  t:"Arreglo la planta artificial", p:"Sí, por fin. Te lo debía.", bonus:true },
-    { e:"💗", bg:"var(--pink)",  t:"Comodín", p:"Vale por lo que vos quieras. Lo que sea.", bonus:true },
+    { e:"💗", bg:"var(--pink)",  t:"Comodín", p:"Vale por lo que vos quieras. Lo que sea.", bonus:true, star:true },
   ];
+  // orden en el talonario: primero los tres especiales (Comodín, Spa, Charmat), después el resto
+  const COUPON_ORDER = [7, 4, 5, 0, 1, 2, 3, 6];
 
   /* ---------- helpers ---------- */
   const $ = s => document.querySelector(s);
@@ -972,14 +985,17 @@
   function isOpen(i) { return COUPONS[i].bonus ? solved >= QUIZ.length : i < solved; }
   function renderCoupons(fresh = -1) {
     const box = $("#coupons"); box.innerHTML = "";
-    COUPONS.forEach((c, i) => {
+    let n = 0;
+    COUPON_ORDER.forEach(i => {
+      const c = COUPONS[i];
       const open = isOpen(i), done = used.includes(i);
+      const label = c.star ? "⭐ Vale especial" : c.bonus ? "Vale bonus" : "Vale N° " + (++n);
       const el = document.createElement("div");
       const isFresh = Array.isArray(fresh) ? fresh.includes(i) : i === fresh;
-      el.className = "coupon" + (open ? "" : " locked") + (done ? " used" : "") + (isFresh ? " fresh" : "");
-      if (isFresh && Array.isArray(fresh)) el.style.animationDelay = (fresh.filter(x => x >= 0 && x < i).length * .3) + "s";
+      el.className = "coupon" + (c.star ? " vip" : "") + (open ? "" : " locked") + (done ? " used" : "") + (isFresh ? " fresh" : "");
+      if (isFresh && Array.isArray(fresh)) el.style.animationDelay = (fresh.filter(x => x >= 0 && COUPON_ORDER.indexOf(x) < COUPON_ORDER.indexOf(i)).length * .3) + "s";
       el.innerHTML = `<div class="l" style="background:${c.bg}">${c.e}</div>
-        <div class="r"><small>${c.bonus ? "Vale bonus" : "Vale N° " + (i + 1)}</small>
+        <div class="r"><small>${label}</small>
           <h3>${c.t}</h3><p>${c.p}</p>
           ${done ? `<button class="linkish resend" aria-label="Reenviar el vale ${c.t}">Reenviar 💌</button>` : `<button class="btn small" aria-label="Canjear el vale ${c.t}">Canjear 💌</button>`}</div>
         <div class="lock">🔒 ${c.bonus ? "Respondé todas las preguntas" : "Respondé la pregunta " + (i + 1)}</div>`;
