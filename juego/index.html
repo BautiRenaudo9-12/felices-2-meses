@@ -338,12 +338,20 @@
     const GOOD_WEIGHT = TYPES.filter(x => !x.bad).reduce((a, b) => a + b.w, 0);
     // En pantalla completa el Desafío no se corta: sigue mientras tengas vidas, y cada 30 mimos viene un jefe
     const ENDLESS = () => !EMBED && mode !== "tranqui";
+    // Patrones de ataque (solo jejenes, rápidos):
+    //  aim  = 3 jejenes apuntados a donde estás, uno atrás del otro → hay que moverse
+    //  fan  = abanico de 5 que rebotan en los costados → meterse entre los rayos
+    //  wall = cortina de lado a lado con un solo hueco → correr hasta el hueco
+    //  zig  = jejenes que bajan en zigzag
     const BOSSES = [
-      { e: "😼", name: "¡Apareció el gato!", sub: "el que casi se pelea con Zari 👀", mix: [["💗", 3], ["🦟", 2], ["🦴", 1]], speed: 1.3, every: .55 },
-      { e: "🦟", name: "¡El Jején Gigante!", sub: "esquivá a sus jejenitos", mix: [["🦟", 3], ["💗", 2]], speed: 1.9, every: .5 },
-      { e: "⛈️", name: "¡Tormenta en la isla!", sub: "llueven mimos… y jejenes", mix: [["💗", 4], ["🍿", 1], ["🦟", 2]], speed: 1, every: .3 },
+      { e: "😼", name: "¡Apareció el gato!", sub: "el que casi se pelea con Zari 👀", pats: ["aim", "fan"], speed: 1.3 },
+      { e: "🦟", name: "¡El Jején Gigante!", sub: "esquivá a sus jejenitos", pats: ["wall", "aim"], speed: 1.9 },
+      { e: "⛈️", name: "¡Tormenta en la isla!", sub: "llueven jejenes… buscá el hueco", pats: ["zig", "wall", "fan"], speed: 1 },
     ];
-    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60;
+    // en la página del sábado (30 segundos) aparece un jefe final en los últimos 11 segundos
+    const FINAL_BOSS = { e: "😼", name: "¡Jefe final: el gato!", sub: "esquivá sus jejenes 👀", pats: ["aim", "fan", "wall"], speed: 1.4 };
+    const FINAL_AT = 19;
+    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60, finalDone = false;
     let CATCH_Y = 0;                                   // altura donde la perrita atrapa (según la pantalla)
     let dpr = 1, W = 0, H = 0, items = [], pops = [], px = 0, tx = 0, score = 0, lives = 3, t = 0,
         running = false, counting = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, shownPow = -1,
@@ -387,6 +395,7 @@
       slurp: () => noise(.45, .35, 450, 2400),
       win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .18, "triangle", .14, null, i * .1)),
       boss: () => { tone(196, .25, "square", .09); tone(147, .45, "square", .09, null, .26); },
+      hiss: () => noise(.12, .12, 2600, 1400),
       life: () => [659, 880, 1047].forEach((f, i) => tone(f, .15, "sine", .14, null, i * .08)),
       chime: () => [784, 988, 1175].forEach((f, i) => tone(f, .6, "sine", .1, null, i * .12, .02)),
     };
@@ -411,8 +420,8 @@
 
     // selector de modo: 🏆 Desafío (30 s, jejenes, 3 vidas) o 🌙 Tranqui (sin reloj, sin jejenes)
     const MSG = {
-      desafio: EMBED ? "Juntá <b>20 mimos</b> en 30 segundos.<br>🍿 Los pochoclos dan puntos dobles.<br>Arrastrá el dedo para moverte 👆"
-                     : "Aguantá todo lo que puedas: tenés 3 vidas.<br>Cada 30 mimos aparece un <b>jefe</b> 😼<br>🍿 puntos dobles · 💝 vida extra",
+      desafio: EMBED ? "Juntá <b>20 mimos</b> en 30 segundos.<br>⚠️ Al final viene un <b>jefe</b> 😼: esquivá sus jejenes.<br>Arrastrá el dedo para moverte 👆"
+                     : "Aguantá todo lo que puedas: tenés 3 vidas.<br>Cada 30 mimos viene un <b>jefe</b> 😼: esquivá sus jejenes.<br>🍿 puntos dobles · 💝 vida extra",
       tranqui: "Sin reloj, sin jejenes, sin apuro 🌙<br>Atrapá mimos todo lo que quieras.<br>Arrastrá el dedo para moverte 👆",
     };
     function setMode(m) {
@@ -461,16 +470,38 @@
     function setPower(on) { $("#gPow").classList.toggle("on", on); pupEl.classList.toggle("power", on); if (!on) shownPow = -1; }
     function showCombo(txt) { const c = $("#gCombo"); c.textContent = txt; c.classList.remove("show"); void c.offsetWidth; c.classList.add("show"); }
     const typeOf = e => TYPES.find(x => x.e === e);
-    function pickMix(mix) { let r = Math.random() * mix.reduce((a, b) => a + b[1], 0); for (const [e, w] of mix) if ((r -= w) < 0) return typeOf(e); return typeOf(mix[0][0]); }
     function levelLabel() { $("#gTime").textContent = `⭐ Nivel ${level}`; }
-    function startBoss() {
-      const k = BOSSES[(level - 1) % BOSSES.length];
-      boss = { k, x: W / 2, y: -80, t: 0, dur: 12, throwT: 1.1 };
+    function startBoss(final = false) {
+      const k = final ? FINAL_BOSS : BOSSES[(level - 1) % BOSSES.length];
+      boss = { k, x: W / 2, y: -80, t: 0, dur: final ? Math.max(6, DUR - t) : 12, throwT: 1.1, pi: 0, final };
       game.classList.add("boss");
       const b = $("#gBanner"); b.querySelector("b").textContent = `${k.e} ${k.name}`; b.querySelector("small").textContent = k.sub;
       b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
       game.classList.remove("shake"); void game.offsetWidth; game.classList.add("shake");
       sfx.boss(); if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    }
+    function bossAttack() {
+      const sp = 1 + (level - 1) * .08, J = typeOf("🦟"), by = boss.y + 30;
+      const pat = boss.k.pats[boss.pi++ % boss.k.pats.length];
+      if (pat === "aim") {
+        for (let i = 0; i < 3; i++) setTimeout(() => {
+          if (!boss || !running) return;
+          const vy = 310 * sp, time = Math.max(.4, (CATCH_Y - (boss.y + 30)) / vy);
+          items.push({ ty: J, x: boss.x, y: boss.y + 30, vy, vx: (px + rand(-8, 8) - boss.x) / time, ph: 0 });
+        }, i * 280);
+        boss.throwT = 1.5 / sp;
+      } else if (pat === "fan") {
+        for (let i = -2; i <= 2; i++) items.push({ ty: J, x: boss.x, y: by, vy: 260 * sp, vx: i * 85, bounce: true, ph: 0 });
+        boss.throwT = 1.35 / sp;
+      } else if (pat === "wall") {
+        const n = Math.max(5, Math.floor((W - 40) / 46)), step = (W - 48) / (n - 1), gap = 1 + Math.floor(Math.random() * (n - 3));
+        for (let i = 0; i < n; i++) if (i !== gap && i !== gap + 1) items.push({ ty: J, x: 24 + i * step, y: by - 10, vy: 205 * sp, vx: 0, ph: i });
+        boss.throwT = 1.7 / sp;
+      } else {                                                                       // zig
+        for (let i = 0; i < 4; i++) items.push({ ty: J, x: rand(40, W - 40), y: by, vy: 225 * sp, vx: 0, zig: rand(90, 150) * (Math.random() < .5 ? -1 : 1), ph: rand(0, 6) });
+        boss.throwT = 1.25 / sp;
+      }
+      sfx.hiss && sfx.hiss();
     }
     function updateBoss(dt) {
       boss.t += dt;
@@ -478,20 +509,19 @@
       if (leaving) boss.y -= dt * 260;
       else { const k = Math.min(1, boss.t / .9); boss.y = -80 + (targetY + 80) * (1 - Math.pow(1 - k, 3)); }
       boss.x = W / 2 + Math.sin(boss.t * boss.k.speed) * (W / 2 - 54);          // se mueve de lado a lado
-      if (!leaving && boss.t > .9) {                                               // y tira cosas
+      if (!leaving && boss.t > .9 && boss.t < boss.dur - .6) {                    // y ataca con patrones
         boss.throwT -= dt;
-        if (boss.throwT <= 0) {
-          boss.throwT = boss.k.every * rand(.8, 1.25);
-          items.push({ ty: pickMix(boss.k.mix), x: Math.max(26, Math.min(W - 26, boss.x + rand(-18, 18))), y: boss.y + 34, vy: 200 + level * 14, ph: rand(0, 6) });
-        }
+        if (boss.throwT <= 0) bossAttack();
       }
       $("#gBossBar i").style.transform = `scaleX(${Math.max(0, 1 - boss.t / boss.dur).toFixed(3)})`;
       ctx.save(); ctx.translate(boss.x, boss.y); ctx.rotate(Math.sin(boss.t * 6) * .12);
       ctx.drawImage(sprite(boss.k.e, 78), -39, -39, 78, 78); ctx.restore();
       if (leaving && boss.y < -90) {                                               // ¡lo aguantaste!
+        const wasFinal = boss.final;
         boss = null; game.classList.remove("boss");
-        level++; levelLabel(); score += 5; hud();
-        showCombo("¡Lo aguantaste! +5 🏆"); sfx.win();
+        if (wasFinal) finalDone = true; else { level++; levelLabel(); }
+        score += 5; hud();
+        showCombo(wasFinal ? "¡Le ganaste al jefe! +5 🏆" : "¡Lo aguantaste! +5 🏆"); sfx.win();
         const r = game.getBoundingClientRect(); burst(r.left + px, r.top + CATCH_Y - 30, 18, ["💗", "✨", "⭐"], 110);
       }
     }
@@ -503,7 +533,7 @@
       size();
       items = []; pops = []; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
       px = tx = W / 2; placePup(); pupEl.classList.remove("left", "power", "bump", "hurt"); setPower(false);
-      milestone = 0; boss = null; nextBoss = 30; level = 1; game.classList.remove("boss");
+      milestone = 0; boss = null; nextBoss = 30; level = 1; finalDone = false; game.classList.remove("boss");
       $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : ENDLESS() ? "⭐ Nivel 1" : DUR + "s";
       game.classList.toggle("relax", relax()); game.classList.add("on");
       ctx.clearRect(0, 0, W, H);
@@ -579,7 +609,7 @@
       const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
       // aparecen cosas cada vez más seguido y más rápido
       spawnT -= dt;
-      if (spawnT <= 0) {
+      if (spawnT <= 0 && !boss) {                                                   // con jefe en pantalla solo ataca él
         const endless = ENDLESS();
         spawnT = relax() ? .48 : endless ? Math.max(.36, .8 - t * .009) * (boss ? 1.9 : 1) : Math.max(.3, .78 - t * .016);
         const ty = pickType();
@@ -604,6 +634,11 @@
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
         it.y += it.vy * dt;
+        if (it.vx) {
+          it.x += it.vx * dt;
+          if (it.bounce && (it.x < 16 || it.x > W - 16)) { it.vx = -it.vx; it.x = Math.max(16, Math.min(W - 16, it.x)); }
+        }
+        if (it.zig) it.x = Math.max(16, Math.min(W - 16, it.x + Math.cos(t * 4 + it.ph) * it.zig * dt));
         // a los jejenes hay que tocarlos más de cerca para que piquen (perdona los roces)
         if (it.y > catchY - 12 && it.y < catchY + 34 && Math.abs(it.x - px) < (it.ty.bad ? 30 : stats.reach)) {
           items.splice(i, 1);
@@ -644,12 +679,13 @@
       }
       if (relax()) { raf = requestAnimationFrame(loop); return; }   // en tranqui no hay reloj ni fin
       if (ENDLESS()) { if (lives <= 0) { end(); return; } raf = requestAnimationFrame(loop); return; }
+      if (!boss && !finalDone && t >= FINAL_AT) startBoss(true);
       const sec = Math.max(0, Math.ceil(DUR - t));
       if (sec !== shownSec) {
         shownSec = sec; $("#gTime").textContent = sec + "s";
         if (sec <= 5) { $("#gTime").classList.add("hurry"); if (sec > 0) sfx.beep(false); }   // últimos 5 segundos
       }
-      if (lives <= 0 || t >= DUR) { end(); return; }
+      if (lives <= 0 || (t >= DUR && !boss)) { end(); return; }
       raf = requestAnimationFrame(loop);
     }
     const move = e => {

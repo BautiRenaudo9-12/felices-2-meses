@@ -2,7 +2,7 @@
 // - Con internet: siempre busca la versión nueva de la página (así las mejoras le llegan solas).
 // - Sin internet: usa lo que quedó guardado, así se puede jugar igual.
 // Al publicar un cambio grande, subí el número de VERSION para limpiar lo viejo.
-const VERSION = "zf-v3";
+const VERSION = "zf-v4";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/favicon-64.png"];
 
 self.addEventListener("install", e => {
