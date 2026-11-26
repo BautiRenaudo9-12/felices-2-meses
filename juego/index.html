@@ -118,6 +118,21 @@
   .g-overlay{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
   .g-brand{font:700 30px "Fredoka",sans-serif;color:var(--pink-dd);margin:0}
   .g-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  /* selector de modo */
+  .g-mode{display:flex;background:#fff;border:2.5px solid var(--line);border-radius:999px;padding:4px;gap:4px;box-shadow:var(--shadow)}
+  .g-mode button{appearance:none;border:0;background:none;border-radius:999px;padding:8px 14px;font:600 16px "Fredoka",sans-serif;color:var(--ink-soft);cursor:pointer;transition:background .2s,color .2s}
+  .g-mode button.on{background:var(--pink-d);color:#fff}
+  .g-mode button[data-m="tranqui"].on{background:#9b8cf0}
+  /* modo tranqui: cielo que cambia de color despacito, sin reloj ni vidas */
+  .game::before{content:"";position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;
+                background:linear-gradient(180deg,#e6dcff 0%,#ffe0cc 62%,#d2f3e6 100%);transition:opacity 1s}
+  .game.relax::before{animation:relaxSky 14s ease-in-out infinite alternate}
+  @keyframes relaxSky{0%{opacity:0}100%{opacity:.85}}
+  .game.relax #gLives{display:none}
+  .game.relax .g-hud{justify-content:flex-start;gap:8px}
+  .g-endbtn{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:3;display:none;appearance:none;border:0;cursor:pointer;
+            background:rgba(255,255,255,.85);border-radius:999px;padding:5px 12px;font:600 15px "Fredoka",sans-serif;color:var(--ink)}
+  .game.relax.on .g-endbtn{display:block}
   .g-inst{background:var(--pink-d);border-color:var(--pink-d);color:#fff}
   .embed .g-brand,.embed .g-inst{display:none}
   .embed .game{touch-action:pan-y}
@@ -193,6 +208,7 @@
     <div class="game" id="game">
       <canvas id="gc"></canvas>
       <div class="g-hud"><span id="gScore">💗 0</span><span id="gTime">30s</span><span id="gLives">❤️❤️❤️</span></div>
+      <button class="g-endbtn" id="gEnd">Terminar 🌙</button>
       <div class="g-pow" id="gPow">🍿 ¡Doble! x2</div>
       <div class="g-combo" id="gCombo"></div>
       <div class="g-pup" id="gPup"><div class="g-face"><svg><use href="#zari"/></svg></div></div>
@@ -211,6 +227,10 @@
       <div class="g-overlay" id="gOver">
         <p class="g-brand">Zari y Frida 🐾</p>
         <h3 id="gTitle">¿Con quién jugás?</h3>
+        <div class="g-mode" role="radiogroup" aria-label="Modo de juego">
+          <button data-m="desafio" role="radio">🏆 Desafío</button>
+          <button data-m="tranqui" role="radio">🌙 Tranqui</button>
+        </div>
         <div class="g-pick">
           <button data-p="zari"><svg><use href="#zari"/></svg>Zari<small>⚡ es rápida</small></button>
           <button data-p="frida"><svg><use href="#frida"/></svg>Frida<small>🫶 atrapa más</small></button>
@@ -297,17 +317,19 @@
 
     /* --- sonidos hechos con código (sin archivos), apagados de entrada --- */
     let snd = store.get("gSnd", false), ac = null;
+    let mode = store.get("gMode", "desafio"), milestone = 0;
+    const relax = () => mode === "tranqui";
     function audio() {
       if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
       if (ac.state === "suspended") ac.resume();
       return ac;
     }
-    function tone(f, dur, type = "sine", vol = .15, f2 = null, when = 0) {
+    function tone(f, dur, type = "sine", vol = .15, f2 = null, when = 0, att = .012) {
       if (!snd) return; const a = audio(); if (!a) return;
       const t0 = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
       o.type = type; o.frequency.setValueAtTime(f, t0);
       if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
-      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + att); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
       o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + .03);
     }
     function noise(dur, vol = .2, from = 1800, to = 400, when = 0) {
@@ -330,11 +352,40 @@
                             tone(760, .1, "square", .1, 400, when + .14); noise(.09, .25, 1700, 700, when + .14); },
       slurp: () => noise(.45, .35, 450, 2400),
       win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .18, "triangle", .14, null, i * .1)),
+      chime: () => [784, 988, 1175].forEach((f, i) => tone(f, .6, "sine", .1, null, i * .12, .02)),
     };
+    // música suavecita para el modo tranqui (Do – La menor – Fa – Sol, como una cajita de música)
+    const PROG = [[261.6, 329.6, 392], [220, 261.6, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7]];
+    let musicTimer = null, beat = 0;
+    function musicStart() {
+      if (!snd || musicTimer || !relax()) return;
+      beat = 0;
+      musicTimer = setInterval(() => {
+        const ch = PROG[Math.floor(beat / 8) % 4];
+        tone(ch[beat % 3] * (beat % 8 >= 4 ? 2 : 1), 1.2, "sine", .04, null, 0, .09);
+        if (beat % 8 === 0) tone(ch[0] / 2, 3.3, "triangle", .03, null, 0, .4);
+        beat++;
+      }, 430);
+    }
+    function musicStop() { clearInterval(musicTimer); musicTimer = null; }
     const sndBtn = $("#gSnd");
     const sndLabel = () => { sndBtn.textContent = snd ? "🔊 Sonido prendido" : "🔇 Sonido apagado"; };
     sndLabel();
     sndBtn.addEventListener("click", e => { e.stopPropagation(); snd = !snd; store.set("gSnd", snd); sndLabel(); if (snd) sfx.pop(); });
+
+    // selector de modo: 🏆 Desafío (30 s, jejenes, 3 vidas) o 🌙 Tranqui (sin reloj, sin jejenes)
+    const MSG = {
+      desafio: "Juntá <b>20 mimos</b> en 30 segundos.<br>🍿 Los pochoclos dan puntos dobles.<br>Arrastrá el dedo para moverte 👆",
+      tranqui: "Sin reloj, sin jejenes, sin apuro 🌙<br>Atrapá mimos todo lo que quieras.<br>Arrastrá el dedo para moverte 👆",
+    };
+    function setMode(m) {
+      mode = m; store.set("gMode", m);
+      over.querySelectorAll("[data-m]").forEach(b => { const on = b.dataset.m === m; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+      $("#gTitle").textContent = "¿Con quién jugás?";
+      $("#gMsg").innerHTML = MSG[m];
+    }
+    over.querySelectorAll("[data-m]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); setMode(b.dataset.m); }));
+    setMode(mode);
 
     // cada emoji se dibuja UNA vez en un canvas chiquito y después se copia (rápido y fluido)
     const sprites = {};
@@ -361,8 +412,9 @@
     }
     // los primeros 3 segundos no hay jejenes, para que arranque tranqui
     function pickType() {
-      const pool = t < 3 ? TYPES.filter(x => !x.bad) : TYPES;
-      let r = Math.random() * (t < 3 ? GOOD_WEIGHT : WEIGHT);
+      const calm = t < 3 || relax();
+      const pool = calm ? TYPES.filter(x => !x.bad) : TYPES;
+      let r = Math.random() * (calm ? GOOD_WEIGHT : WEIGHT);
       for (const ty of pool) if ((r -= ty.w) < 0) return ty;
       return TYPES[0];
     }
@@ -377,11 +429,15 @@
       size();
       items = []; pops = []; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
       px = tx = W / 2; placePup(); pupEl.classList.remove("left", "power", "bump", "hurt"); setPower(false);
-      $("#gTime").classList.remove("hurry"); $("#gTime").textContent = DUR + "s";
+      milestone = 0;
+      $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : DUR + "s";
+      game.classList.toggle("relax", relax()); game.classList.add("on");
       ctx.clearRect(0, 0, W, H);
       over.classList.add("hide"); hud();
       document.body.classList.add("playing");
-      countdown(() => { running = true; last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); });
+      const go = () => { running = true; last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); };
+      if (relax()) { musicStart(); go(); }          // en modo tranqui arranca sin cuenta regresiva
+      else countdown(go);
     }
     // cuenta regresiva 3, 2, 1, ¡Ya!
     function countdown(done) {
@@ -396,12 +452,19 @@
     function end() {
       running = false; setPower(false); $("#gTime").classList.remove("hurry");
       document.body.classList.remove("playing");
+      game.classList.remove("on"); musicStop();
+      if (relax()) {
+        $("#gTitle").textContent = "Qué lindo rato 🌙";
+        $("#gMsg").innerHTML = `Juntaste <b>${score}</b> mimos 💗<br>${stats.name} te dice: volvé cuando quieras`;
+        over.classList.remove("hide");
+        return;
+      }
       const win = score >= GOAL, record = score > best;
       if (record) { best = score; store.set("gBest", best); }
       const show = () => {
         $("#gTitle").textContent = win ? "¡Ganaste! 🏆" : (lives <= 0 ? "¡Te picaron los jejenes! 🦟" : "¡Se terminó el tiempo! ⏰");
         $("#gMsg").innerHTML = `Juntaste <b>${score}</b> mimos${record && score > 0 ? " · ¡récord nuevo!" : ` · récord: <b>${best}</b>`}<br>` +
-          (win ? `${stats.name} te dice: ¡sos la mejor mamá perruna! 💗` : `Necesitás ${GOAL} para ganar. ¿Otra? 👇`);
+          (win ? `${stats.name} te dice: ¡sos la mejor mamá! 💗` : `Necesitás ${GOAL} para ganar. ¿Otra? 👇`);
         over.classList.remove("hide");
       };
       win ? celebrate(show) : show();
@@ -430,9 +493,10 @@
       // aparecen cosas cada vez más seguido y más rápido
       spawnT -= dt;
       if (spawnT <= 0) {
-        spawnT = Math.max(.3, .78 - t * .016);
+        spawnT = relax() ? .62 : Math.max(.3, .78 - t * .016);
         const ty = pickType();
-        items.push({ ty, x: 26 + Math.random() * (W - 52), y: -28, vy: (150 + t * 7) * (.85 + Math.random() * .4), ph: Math.random() * 6 });
+        const vy = relax() ? 115 * (.85 + Math.random() * .3) : (150 + t * 7) * (.85 + Math.random() * .4);
+        items.push({ ty, x: 26 + Math.random() * (W - 52), y: -28, vy, ph: Math.random() * 6 });
       }
       // la perrita sigue al dedo (Zari más rápido, Frida más tranqui) y mira hacia donde va
       const dx = tx - px;
@@ -466,6 +530,11 @@
             if (combo % 5 === 0) { gained += 2; showCombo(`¡Combo ${combo}! 🔥 +2`); sfx.combo(); }
             score += gained;
             pops.push({ x: it.x, y: catchY - 24, txt: "+" + gained, life: 1 });
+            if (relax() && Math.floor(score / 25) > milestone) {          // cada 25 mimos, un festejito suave
+              milestone = Math.floor(score / 25);
+              showCombo(`¡${milestone * 25} mimos! 💗`); sfx.chime();
+              const r = game.getBoundingClientRect(); burst(r.left + px, r.top + catchY - 30, 12, ["💗", "✨", "🌸"], 90);
+            }
           }
           hud();
           continue;
@@ -481,6 +550,7 @@
         if (q.life <= 0) { pops.splice(i, 1); continue; }
         ctx.globalAlpha = Math.min(1, q.life); ctx.fillText(q.txt, q.x, q.y); ctx.globalAlpha = 1;
       }
+      if (relax()) { raf = requestAnimationFrame(loop); return; }   // en tranqui no hay reloj ni fin
       const sec = Math.max(0, Math.ceil(DUR - t));
       if (sec !== shownSec) {
         shownSec = sec; $("#gTime").textContent = sec + "s";
@@ -504,9 +574,10 @@
     });
     document.addEventListener("visibilitychange", () => {      // si sale de la app, se pausa
       if (!running) return;
-      if (document.hidden) cancelAnimationFrame(raf);
-      else { last = performance.now(); raf = requestAnimationFrame(loop); }
+      if (document.hidden) { cancelAnimationFrame(raf); musicStop(); }
+      else { last = performance.now(); raf = requestAnimationFrame(loop); musicStart(); }
     });
+    $("#gEnd").addEventListener("click", e => { e.stopPropagation(); if (running && relax()) end(); });
     over.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", e => {
       e.stopPropagation(); if (running || counting) return; audio && snd && audio(); start(b.dataset.p);
     }));
