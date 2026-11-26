@@ -1187,7 +1187,7 @@
       const show = () => {
         $("#gTitle").textContent = win ? "¡Ganaste! 🏆" : (lives <= 0 ? "¡Te picaron los jejenes! 🦟" : "¡Se terminó el tiempo! ⏰");
         $("#gMsg").innerHTML = `Juntaste <b>${score}</b> mimos${record && score > 0 ? " · ¡récord nuevo!" : ` · récord: <b>${best}</b>`}<br>` +
-          (win ? `${stats.name} te dice: ¡sos la mejor mamá perruna! 💗` : `Necesitás ${GOAL} para ganar. ¿Otra? 👇`);
+          (win ? `${stats.name} te dice: ¡sos la mejor mamá! 💗` : `Necesitás ${GOAL} para ganar. ¿Otra? 👇`);
         over.classList.remove("hide");
       };
       win ? celebrate(show) : show();
