@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Zari y Frida">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Caveat:wght@500;700&display=swap" rel="stylesheet" crossorigin>
 <style>
   :root{
     --pink:#ffd3e1; --pink-d:#ff8fb3; --pink-dd:#e5648f;
@@ -125,6 +125,7 @@
   body:not(.embed) .game::after{height:var(--floor);border-radius:28px 28px 0 0;
     background:linear-gradient(180deg,#c9efdc 0%,#b6e6cd 100%);border-top:3px solid #a8dfc4}
   body:not(.embed) .g-pup{bottom:calc(var(--floor) - 10px)}
+  @media (orientation: landscape) and (max-height: 500px){ body:not(.embed){--floor:calc(64px + env(safe-area-inset-bottom))} }
   body:not(.embed) .g-combo{bottom:calc(var(--floor) + 104px)}
   body:not(.embed) .w-pup{bottom:calc(var(--floor) + 10px)}
   body:not(.embed) .w-shadow{bottom:calc(var(--floor) + 2px)}
@@ -357,7 +358,7 @@
     // en la página del sábado (30 segundos) aparece un jefe final en los últimos 11 segundos
     const FINAL_BOSS = { e: "😼", name: "¡Jefe final: el gato!", sub: "esquivá sus jejenes 👀", pats: ["aim", "fan", "wall", "zig"], speed: 1.4 };
     const FINAL_AT = 19;
-    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60, finalDone = false, vanish = [], gapHint = null;
+    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60, finalDone = false, vanish = [], gapHint = null, bossDue = false, gameLeft = 0, bossBarEl = null;
     let CATCH_Y = 0;                                   // altura donde la perrita atrapa (según la pantalla)
     let dpr = 1, W = 0, H = 0, items = [], pops = [], px = 0, tx = 0, score = 0, lives = 3, t = 0,
         running = false, counting = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, shownPow = -1,
@@ -383,12 +384,15 @@
         const conv = ac.createConvolver(); conv.buffer = ir;
         verb = ac.createGain(); verb.gain.value = .22; verb.connect(conv); conv.connect(lp);
       }
-      if (ac.state === "suspended") ac.resume();
+      if (ac.state !== "running") { try { const pr = ac.resume(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {} }
       return ac;
     }
     // una nota suave: dos osciladores apenas desafinados (suena más "lleno"), ataque y cola redondeados
     function tone(f, dur, type = "sine", vol = .15, f2 = null, when = 0, att = .008, wet = .5) {
-      if (!snd) return; const a = audio(); if (!a) return;
+      try { toneRaw(f, dur, type, vol, f2, when, att, wet); } catch (e) {}
+    }
+    function toneRaw(f, dur, type, vol, f2, when, att, wet) {
+      if (!snd) return; const a = audio(); if (!a || !bus) return;
       const t0 = a.currentTime + when, g = a.createGain();
       g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + att); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
       [-4, 4].forEach(det => {
@@ -400,10 +404,15 @@
     }
     // campanita: la nota + su octava bien bajita
     function bell(f, dur = .8, vol = .1, when = 0) { tone(f, dur, "sine", vol, null, when, .005, .8); tone(f * 2, dur * .6, "sine", vol * .22, null, when, .005, .8); }
+    const noiseBufs = {};                                                            // ruido reutilizable (no se arma de nuevo cada vez)
     function noise(dur, vol = .2, from = 1800, to = 400, when = 0, type = "bandpass", q = 1.3) {
-      if (!snd) return; const a = audio(); if (!a) return;
-      const t0 = a.currentTime + when, len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+      try { noiseRaw(dur, vol, from, to, when, type, q); } catch (e) {}
+    }
+    function noiseRaw(dur, vol, from, to, when, type, q) {
+      if (!snd) return; const a = audio(); if (!a || !bus) return;
+      const t0 = a.currentTime + when, len = Math.floor(a.sampleRate * dur);
+      let b = noiseBufs[len];
+      if (!b) { b = noiseBufs[len] = a.createBuffer(1, len, a.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2); }
       const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
       s.buffer = b; f.type = type; f.Q.value = q;
       f.frequency.setValueAtTime(from, t0); f.frequency.exponentialRampToValueAtTime(to, t0 + dur);
@@ -479,9 +488,16 @@
       x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(e, s / 2, s / 2 + size * .04 * dpr);
       return (sprites[key] = c);
     }
+    function glowSprite(e) {
+      const key = "glow" + e;
+      if (sprites[key]) return sprites[key];
+      const base = sprite(e), c = document.createElement("canvas"); c.width = base.width; c.height = base.height;
+      const x = c.getContext("2d"); x.shadowColor = "#ffd36e"; x.shadowBlur = 12 * dpr; x.drawImage(base, 0, 0); x.shadowBlur = 0; x.drawImage(base, 0, 0);
+      return (sprites[key] = c);
+    }
     function size() {
       dpr = Math.min(2, devicePixelRatio || 1);
-      const r = game.getBoundingClientRect(); W = r.width; H = r.height;
+      const r = game.getBoundingClientRect(); W = r.width; H = r.height; gameLeft = r.left;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       CATCH_Y = pupEl.offsetTop + 20;
@@ -534,14 +550,14 @@
       if (pat === "wall") boss.wallDone = true;
       if (pat === "aim") {
         for (let i = 0; i < 3; i++) setTimeout(() => {
-          if (!boss || !running) return;
+          if (!boss || !running || document.hidden || pausedByView) return;
           const vy = 235 * sp, time = Math.max(.5, (CATCH_Y - (boss.y + 30)) / vy);
           items.push({ ty: J, x: boss.x, y: boss.y + 30, vy, vx: (px + rand(-8, 8) - boss.x) / time, ph: 0 });
         }, i * 280);
         boss.throwT = 1.7 / sp;
       } else if (pat === "fan") {
         [-1, 1, 0].forEach((d, i) => setTimeout(() => {
-          if (!boss || !running) return;
+          if (!boss || !running || document.hidden || pausedByView) return;
           items.push({ ty: J, x: boss.x, y: boss.y + 30, vy: 195 * sp, vx: d * 95, bounce: true, ph: 0 });
         }, i * 330));
         boss.throwT = 1.6 / sp;
@@ -557,7 +573,7 @@
         boss.throwT = 2.2 / sp;
       } else {                                                                       // zig
         for (let i = 0; i < 4; i++) setTimeout(() => {
-          if (!boss || !running) return;
+          if (!boss || !running || document.hidden || pausedByView) return;
           items.push({ ty: J, x: rand(40, W - 40), y: boss.y + 30, vy: 175 * sp, vx: 0, zig: rand(80, 130) * (Math.random() < .5 ? -1 : 1), ph: rand(0, 6) });
         }, i * 300);
         boss.throwT = 1.5 / sp;
@@ -574,7 +590,7 @@
         boss.throwT -= dt;
         if (boss.throwT <= 0) bossAttack();
       }
-      $("#gBossBar i").style.transform = `scaleX(${Math.max(0, 1 - boss.t / boss.dur).toFixed(3)})`;
+      (bossBarEl || (bossBarEl = $("#gBossBar i"))).style.transform = `scaleX(${Math.max(0, 1 - boss.t / boss.dur).toFixed(3)})`;
       ctx.save(); ctx.translate(boss.x, boss.y); ctx.rotate(Math.sin(boss.t * 6) * .12);
       ctx.drawImage(sprite(boss.k.e, 78), -39, -39, 78, 78); ctx.restore();
       if (leaving && boss.y < -90) {                                               // ¡lo aguantaste!
@@ -595,7 +611,7 @@
       size();
       items = []; pops = []; vanish = []; gapHint = null; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
       px = tx = W / 2; placePup(); pupEl.classList.remove("left", "power", "bump", "hurt"); setPower(false);
-      milestone = 0; boss = null; nextBoss = 30; level = 1; finalDone = false; game.classList.remove("boss");
+      milestone = 0; boss = null; bossDue = false; nextBoss = 30; level = 1; finalDone = false; game.classList.remove("boss");
       $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : ENDLESS() ? "⭐ Nivel 1" : DUR + "s";
       game.classList.toggle("relax", relax()); game.classList.add("on");
       ctx.clearRect(0, 0, W, H);
@@ -667,7 +683,7 @@
     }
 
     function loop(now) {
-      if (!running) return;
+      if (!running || pausedByView) return;
       const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
       // aparecen cosas cada vez más seguido y más rápido
       spawnT -= dt;
@@ -713,6 +729,7 @@
       const catchY = CATCH_Y;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
+        if (!it) continue;
         it.y += it.vy * dt;
         if (it.vx) {
           it.x += it.vx * dt;
@@ -736,7 +753,7 @@
             if (combo % 5 === 0) { gained += 2; showCombo(`¡Combo ${combo}! 🔥 +2`); sfx.combo(); }
             score += gained;
             pops.push({ x: it.x, y: catchY - 24, txt: "+" + gained, life: 1 });
-            if (ENDLESS() && !boss && score >= nextBoss) { nextBoss += 30; startBoss(); }
+            if (ENDLESS() && !boss && !bossDue && score >= nextBoss) { nextBoss += 30; bossDue = true; }   // arranca después del recorrido
             if (relax() && Math.floor(score / 25) > milestone) {          // cada 25 mimos, un festejito suave
               milestone = Math.floor(score / 25);
               showCombo(`¡${milestone * 25} mimos! 💗`); sfx.chime();
@@ -748,8 +765,7 @@
         }
         if (it.y > H + 30) { items.splice(i, 1); continue; }
         ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(Math.sin(t * 3 + it.ph) * .25);
-        if (it.ty.power) { ctx.shadowColor = "#ffd36e"; ctx.shadowBlur = 14; }
-        ctx.drawImage(sprite(it.ty.e), -23, -23, 46, 46); ctx.restore();
+        ctx.drawImage(it.ty.power ? glowSprite(it.ty.e) : sprite(it.ty.e), -23, -23, 46, 46); ctx.restore();
       }
       ctx.font = '600 18px "Fredoka", sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = "#e5648f";
       for (let i = pops.length - 1; i >= 0; i--) {
@@ -757,6 +773,7 @@
         if (q.life <= 0) { pops.splice(i, 1); continue; }
         ctx.globalAlpha = Math.min(1, q.life); ctx.fillText(q.txt, q.x, q.y); ctx.globalAlpha = 1;
       }
+      if (bossDue) { bossDue = false; startBoss(); }
       if (relax()) { raf = requestAnimationFrame(loop); return; }   // en tranqui no hay reloj ni fin
       if (ENDLESS()) { if (lives <= 0) { end(); return; } raf = requestAnimationFrame(loop); return; }
       if (!boss && !finalDone && t >= FINAL_AT) startBoss(true);
@@ -770,8 +787,9 @@
     }
     const move = e => {
       if (!running && !counting) return;
-      const r = game.getBoundingClientRect();
-      tx = Math.max(40, Math.min(W - 40, e.clientX - r.left));
+      if (e.isPrimary === false) return;
+      if (snd && ac && ac.state !== "running") audio();                           // iOS: reanuda el sonido con el toque
+      tx = Math.max(40, Math.min(W - 40, e.clientX - gameLeft));
       if (counting) { px = tx; placePup(); }
     };
     game.addEventListener("pointerdown", move);
@@ -784,8 +802,16 @@
     document.addEventListener("visibilitychange", () => {      // si sale de la app, se pausa
       if (!running) return;
       if (document.hidden) { cancelAnimationFrame(raf); musicStop(); }
-      else { last = performance.now(); raf = requestAnimationFrame(loop); musicStart(); }
+      else { cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(loop); musicStart(); }
     });
+    // dentro de la página del sábado: si scrollea y el juego queda fuera de la pantalla, se pausa solo
+    let pausedByView = false;
+    if (EMBED && "IntersectionObserver" in window) new IntersectionObserver(es => {
+      const vis = es[es.length - 1].isIntersecting;
+      if (!running) { pausedByView = false; return; }
+      if (!vis && !pausedByView) { pausedByView = true; cancelAnimationFrame(raf); musicStop(); }
+      else if (vis && pausedByView) { pausedByView = false; cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(loop); musicStart(); }
+    }, { threshold: .25 }).observe(game);
     $("#gEnd").addEventListener("click", e => { e.stopPropagation(); if (running && relax()) end(); });
     over.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", e => {
       e.stopPropagation(); if (running || counting) return; try { if (snd) audio(); } catch (_) {} start(b.dataset.p);

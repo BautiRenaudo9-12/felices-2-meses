@@ -2,8 +2,8 @@
 // - Con internet: siempre busca la versión nueva de la página (así las mejoras le llegan solas).
 // - Sin internet: usa lo que quedó guardado, así se puede jugar igual.
 // Al publicar un cambio grande, subí el número de VERSION para limpiar lo viejo.
-const VERSION = "zf-v9";
-const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/favicon-64.png"];
+const VERSION = "zf-v10";
+const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/favicon-64.png", "./icons/icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -22,10 +22,18 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
 
   // la página: primero internet (para tener lo último), si no hay, lo guardado
+  // (solo se guardan respuestas buenas, y si la señal es mala, a los 3 s abre lo guardado)
   if (req.mode === "navigate") {
+    const cached = () => caches.match("./index.html").then(r => r || caches.match("./"));
+    const net = fetch(req).then(res => {
+      if (res && res.ok && res.type === "basic") { const copy = res.clone(); e.waitUntil(caches.open(VERSION).then(c => c.put("./index.html", copy))); }
+      return res;
+    });
+    const slow = new Promise(resolve => setTimeout(resolve, 3000)).then(cached);
     e.respondWith(
-      fetch(req).then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put("./index.html", copy)); return res; })
-        .catch(() => caches.match("./index.html").then(r => r || caches.match("./")))
+      Promise.race([net.catch(cached), slow.then(r => r || net)])
+        .then(r => r || net)
+        .catch(cached)
     );
     return;
   }
