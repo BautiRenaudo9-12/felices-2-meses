@@ -115,6 +115,28 @@
   .g-pow{top:calc(52px + env(safe-area-inset-top))}
   .g-pup{bottom:calc(12px + env(safe-area-inset-bottom))}
   .game::after{height:calc(22px + env(safe-area-inset-bottom))}
+  /* en pantalla completa el piso va más arriba: el dedo se apoya en el pasto y no tapa a la perrita */
+  body:not(.embed){--floor:calc(150px + env(safe-area-inset-bottom))}
+  body:not(.embed) .game::after{height:var(--floor);border-radius:28px 28px 0 0;
+    background:linear-gradient(180deg,#c9efdc 0%,#b6e6cd 100%);border-top:3px solid #a8dfc4}
+  body:not(.embed) .g-pup{bottom:calc(var(--floor) - 10px)}
+  body:not(.embed) .g-combo{bottom:calc(var(--floor) + 104px)}
+  body:not(.embed) .w-pup{bottom:calc(var(--floor) + 10px)}
+  body:not(.embed) .w-shadow{bottom:calc(var(--floor) + 2px)}
+  .g-floorhint{display:none;position:absolute;left:0;right:0;bottom:calc(var(--floor) / 2 - 14px);z-index:2;text-align:center;pointer-events:none;
+               font:600 16px "Fredoka",sans-serif;color:#5d9c7d;opacity:.75}
+  body:not(.embed) .game.on .g-floorhint{display:block}
+  /* jefes */
+  .g-bossbar{position:absolute;left:50%;top:calc(50px + env(safe-area-inset-top));width:150px;height:10px;margin-left:-75px;z-index:2;display:none;
+             border-radius:999px;background:rgba(255,255,255,.85);overflow:hidden;pointer-events:none}
+  .g-bossbar i{display:block;height:100%;background:linear-gradient(90deg,#ff8fb3,#9b8cf0);transform-origin:0 50%;will-change:transform}
+  .game.boss .g-bossbar{display:block}
+  .game.boss .g-pow{top:calc(70px + env(safe-area-inset-top))}
+  .g-banner{position:absolute;left:0;right:0;top:34%;z-index:3;text-align:center;pointer-events:none;opacity:0}
+  .g-banner b{display:block;font:700 34px "Fredoka",sans-serif;color:var(--pink-dd);text-shadow:0 3px 0 #fff,0 0 18px #fff}
+  .g-banner small{display:block;font:700 16px "Nunito",sans-serif;color:var(--ink);text-shadow:0 0 10px #fff}
+  .g-banner.show{animation:bannerIn 2.2s cubic-bezier(.3,1.5,.5,1) forwards}
+  @keyframes bannerIn{0%{opacity:0;transform:scale(.4) rotate(-6deg)}18%{opacity:1;transform:scale(1.1) rotate(2deg)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
   .g-overlay{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
   .g-brand{font:700 30px "Fredoka",sans-serif;color:var(--pink-dd);margin:0}
   .g-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -209,6 +231,9 @@
       <canvas id="gc"></canvas>
       <div class="g-hud"><span id="gScore">💗 0</span><span id="gTime">30s</span><span id="gLives">❤️❤️❤️</span></div>
       <button class="g-endbtn" id="gEnd">Terminar 🌙</button>
+      <div class="g-bossbar" id="gBossBar"><i></i></div>
+      <div class="g-banner" id="gBanner"><b></b><small></small></div>
+      <div class="g-floorhint">👆 deslizá el dedo por acá</div>
       <div class="g-pow" id="gPow">🍿 ¡Doble! x2</div>
       <div class="g-combo" id="gCombo"></div>
       <div class="g-pup" id="gPup"><div class="g-face"><svg><use href="#zari"/></svg></div></div>
@@ -307,9 +332,18 @@
       { e: "🦴", pts: 1, w: 4, bone: true },
       { e: "🍿", pts: 1, w: .9, power: true },           // bolsa de pochoclos: puntos dobles por 5 segundos
       { e: "🦟", pts: 0, w: 2.2, bad: true },            // los jejenes 😵
+      { e: "💝", pts: 1, w: .35, life: true, full: true }, // vida extra (solo en pantalla completa)
     ];
     const WEIGHT = TYPES.reduce((a, b) => a + b.w, 0);
     const GOOD_WEIGHT = TYPES.filter(x => !x.bad).reduce((a, b) => a + b.w, 0);
+    // En pantalla completa el Desafío no se corta: sigue mientras tengas vidas, y cada 30 mimos viene un jefe
+    const ENDLESS = () => !EMBED && mode !== "tranqui";
+    const BOSSES = [
+      { e: "😼", name: "¡Apareció el gato!", sub: "el que casi se pelea con Zari 👀", mix: [["💗", 3], ["🦟", 2], ["🦴", 1]], speed: 1.3, every: .55 },
+      { e: "🦟", name: "¡El Jején Gigante!", sub: "esquivá a sus jejenitos", mix: [["🦟", 3], ["💗", 2]], speed: 1.9, every: .5 },
+      { e: "⛈️", name: "¡Tormenta en la isla!", sub: "llueven mimos… y jejenes", mix: [["💗", 4], ["🍿", 1], ["🦟", 2]], speed: 1, every: .3 },
+    ];
+    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60;
     let CATCH_Y = 0;                                   // altura donde la perrita atrapa (según la pantalla)
     let dpr = 1, W = 0, H = 0, items = [], pops = [], px = 0, tx = 0, score = 0, lives = 3, t = 0,
         running = false, counting = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, shownPow = -1,
@@ -352,6 +386,8 @@
                             tone(760, .1, "square", .1, 400, when + .14); noise(.09, .25, 1700, 700, when + .14); },
       slurp: () => noise(.45, .35, 450, 2400),
       win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .18, "triangle", .14, null, i * .1)),
+      boss: () => { tone(196, .25, "square", .09); tone(147, .45, "square", .09, null, .26); },
+      life: () => [659, 880, 1047].forEach((f, i) => tone(f, .15, "sine", .14, null, i * .08)),
       chime: () => [784, 988, 1175].forEach((f, i) => tone(f, .6, "sine", .1, null, i * .12, .02)),
     };
     // música suavecita para el modo tranqui (Do – La menor – Fa – Sol, como una cajita de música)
@@ -375,7 +411,8 @@
 
     // selector de modo: 🏆 Desafío (30 s, jejenes, 3 vidas) o 🌙 Tranqui (sin reloj, sin jejenes)
     const MSG = {
-      desafio: "Juntá <b>20 mimos</b> en 30 segundos.<br>🍿 Los pochoclos dan puntos dobles.<br>Arrastrá el dedo para moverte 👆",
+      desafio: EMBED ? "Juntá <b>20 mimos</b> en 30 segundos.<br>🍿 Los pochoclos dan puntos dobles.<br>Arrastrá el dedo para moverte 👆"
+                     : "Aguantá todo lo que puedas: tenés 3 vidas.<br>Cada 30 mimos aparece un <b>jefe</b> 😼<br>🍿 puntos dobles · 💝 vida extra",
       tranqui: "Sin reloj, sin jejenes, sin apuro 🌙<br>Atrapá mimos todo lo que quieras.<br>Arrastrá el dedo para moverte 👆",
     };
     function setMode(m) {
@@ -389,14 +426,15 @@
 
     // cada emoji se dibuja UNA vez en un canvas chiquito y después se copia (rápido y fluido)
     const sprites = {};
-    function sprite(e) {
-      if (sprites[e]) return sprites[e];
-      const c = document.createElement("canvas"), s = Math.round(46 * dpr);
+    function sprite(e, size = 46) {
+      const key = e + size;
+      if (sprites[key]) return sprites[key];
+      const c = document.createElement("canvas"), s = Math.round(size * dpr);
       c.width = c.height = s;
       const x = c.getContext("2d");
-      x.font = `${Math.round(34 * dpr)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-      x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(e, s / 2, s / 2 + 2 * dpr);
-      return (sprites[e] = c);
+      x.font = `${Math.round(size * .74 * dpr)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(e, s / 2, s / 2 + size * .04 * dpr);
+      return (sprites[key] = c);
     }
     function size() {
       dpr = Math.min(2, devicePixelRatio || 1);
@@ -404,6 +442,7 @@
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       CATCH_Y = pupEl.offsetTop + 20;
+      HUD_Y = $(".g-hud").offsetTop + 44;
       for (const k in sprites) delete sprites[k];
     }
     function hud() {
@@ -413,14 +452,49 @@
     // los primeros 3 segundos no hay jejenes, para que arranque tranqui
     function pickType() {
       const calm = t < 3 || relax();
-      const pool = calm ? TYPES.filter(x => !x.bad) : TYPES;
-      let r = Math.random() * (calm ? GOOD_WEIGHT : WEIGHT);
+      const pool = TYPES.filter(x => (!calm || !x.bad) && (!x.full || ENDLESS()));
+      let r = Math.random() * pool.reduce((a, b) => a + b.w, 0);
       for (const ty of pool) if ((r -= ty.w) < 0) return ty;
       return TYPES[0];
     }
     function flash(cls) { pupEl.classList.remove("bump", "hurt"); void pupEl.offsetWidth; pupEl.classList.add(cls); }
     function setPower(on) { $("#gPow").classList.toggle("on", on); pupEl.classList.toggle("power", on); if (!on) shownPow = -1; }
     function showCombo(txt) { const c = $("#gCombo"); c.textContent = txt; c.classList.remove("show"); void c.offsetWidth; c.classList.add("show"); }
+    const typeOf = e => TYPES.find(x => x.e === e);
+    function pickMix(mix) { let r = Math.random() * mix.reduce((a, b) => a + b[1], 0); for (const [e, w] of mix) if ((r -= w) < 0) return typeOf(e); return typeOf(mix[0][0]); }
+    function levelLabel() { $("#gTime").textContent = `⭐ Nivel ${level}`; }
+    function startBoss() {
+      const k = BOSSES[(level - 1) % BOSSES.length];
+      boss = { k, x: W / 2, y: -80, t: 0, dur: 12, throwT: 1.1 };
+      game.classList.add("boss");
+      const b = $("#gBanner"); b.querySelector("b").textContent = `${k.e} ${k.name}`; b.querySelector("small").textContent = k.sub;
+      b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+      game.classList.remove("shake"); void game.offsetWidth; game.classList.add("shake");
+      sfx.boss(); if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    }
+    function updateBoss(dt) {
+      boss.t += dt;
+      const leaving = boss.t > boss.dur, targetY = HUD_Y + 40;
+      if (leaving) boss.y -= dt * 260;
+      else { const k = Math.min(1, boss.t / .9); boss.y = -80 + (targetY + 80) * (1 - Math.pow(1 - k, 3)); }
+      boss.x = W / 2 + Math.sin(boss.t * boss.k.speed) * (W / 2 - 54);          // se mueve de lado a lado
+      if (!leaving && boss.t > .9) {                                               // y tira cosas
+        boss.throwT -= dt;
+        if (boss.throwT <= 0) {
+          boss.throwT = boss.k.every * rand(.8, 1.25);
+          items.push({ ty: pickMix(boss.k.mix), x: Math.max(26, Math.min(W - 26, boss.x + rand(-18, 18))), y: boss.y + 34, vy: 200 + level * 14, ph: rand(0, 6) });
+        }
+      }
+      $("#gBossBar i").style.transform = `scaleX(${Math.max(0, 1 - boss.t / boss.dur).toFixed(3)})`;
+      ctx.save(); ctx.translate(boss.x, boss.y); ctx.rotate(Math.sin(boss.t * 6) * .12);
+      ctx.drawImage(sprite(boss.k.e, 78), -39, -39, 78, 78); ctx.restore();
+      if (leaving && boss.y < -90) {                                               // ¡lo aguantaste!
+        boss = null; game.classList.remove("boss");
+        level++; levelLabel(); score += 5; hud();
+        showCombo("¡Lo aguantaste! +5 🏆"); sfx.win();
+        const r = game.getBoundingClientRect(); burst(r.left + px, r.top + CATCH_Y - 30, 18, ["💗", "✨", "⭐"], 110);
+      }
+    }
     function placePup() { pupEl.style.transform = `translateX(${px.toFixed(1)}px)`; }
 
     function start(p) {
@@ -429,8 +503,8 @@
       size();
       items = []; pops = []; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
       px = tx = W / 2; placePup(); pupEl.classList.remove("left", "power", "bump", "hurt"); setPower(false);
-      milestone = 0;
-      $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : DUR + "s";
+      milestone = 0; boss = null; nextBoss = 30; level = 1; game.classList.remove("boss");
+      $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : ENDLESS() ? "⭐ Nivel 1" : DUR + "s";
       game.classList.toggle("relax", relax()); game.classList.add("on");
       ctx.clearRect(0, 0, W, H);
       over.classList.add("hide"); hud();
@@ -457,6 +531,19 @@
         $("#gTitle").textContent = "Qué lindo rato 🌙";
         $("#gMsg").innerHTML = `Juntaste <b>${score}</b> mimos 💗<br>${stats.name} te dice: volvé cuando quieras`;
         over.classList.remove("hide");
+        return;
+      }
+      boss = null; game.classList.remove("boss");
+      if (ENDLESS()) {
+        const bestE = store.get("gBestFull", 0), rec = score > bestE;
+        if (rec) store.set("gBestFull", score);
+        const showE = () => {
+          $("#gTitle").textContent = rec && score > 0 ? "¡Récord nuevo! 🏆" : "¡Te picaron los jejenes! 🦟";
+          $("#gMsg").innerHTML = `Llegaste a <b>${score}</b> mimos · nivel ${level}<br>récord: <b>${Math.max(bestE, score)}</b>` +
+            (rec && score >= GOAL ? `<br>${stats.name} te dice: ¡sos la mejor mamá! 💗` : "<br>¿Otra? 👇");
+          over.classList.remove("hide");
+        };
+        rec && score >= GOAL ? celebrate(showE) : showE();
         return;
       }
       const win = score >= GOAL, record = score > best;
@@ -493,9 +580,11 @@
       // aparecen cosas cada vez más seguido y más rápido
       spawnT -= dt;
       if (spawnT <= 0) {
-        spawnT = relax() ? .62 : Math.max(.3, .78 - t * .016);
+        const endless = ENDLESS();
+        spawnT = relax() ? .48 : endless ? Math.max(.36, .8 - t * .009) * (boss ? 1.9 : 1) : Math.max(.3, .78 - t * .016);
         const ty = pickType();
-        const vy = relax() ? 115 * (.85 + Math.random() * .3) : (150 + t * 7) * (.85 + Math.random() * .4);
+        const vy = relax() ? 175 * (.85 + Math.random() * .3)
+                 : (150 + (endless ? Math.min(t, 100) * 3.5 : t * 7)) * (.85 + Math.random() * .4);
         items.push({ ty, x: 26 + Math.random() * (W - 52), y: -28, vy, ph: Math.random() * 6 });
       }
       // la perrita sigue al dedo (Zari más rápido, Frida más tranqui) y mira hacia donde va
@@ -510,6 +599,7 @@
       }
       if (combo && t - lastCatch > 2.5) combo = 0;
       ctx.clearRect(0, 0, W, H);
+      if (boss) updateBoss(dt);
       const catchY = CATCH_Y;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
@@ -525,11 +615,13 @@
           } else {
             let gained = it.ty.pts * (power > 0 ? 2 : 1);
             combo++; lastCatch = t; flash("bump");
-            if (it.ty.power) { power = POWER_TIME; setPower(true); sfx.power(); pops.push({ x: it.x, y: catchY - 44, txt: "🍿 ¡Puntos dobles!", life: 1.2 }); }
+            if (it.ty.life && lives < 3) { lives++; sfx.life(); pops.push({ x: it.x, y: catchY - 44, txt: "💝 ¡+1 vida!", life: 1.2 }); }
+            else if (it.ty.power) { power = POWER_TIME; setPower(true); sfx.power(); pops.push({ x: it.x, y: catchY - 44, txt: "🍿 ¡Puntos dobles!", life: 1.2 }); }
             else it.ty.bone ? sfx.bone() : sfx.pop();
             if (combo % 5 === 0) { gained += 2; showCombo(`¡Combo ${combo}! 🔥 +2`); sfx.combo(); }
             score += gained;
             pops.push({ x: it.x, y: catchY - 24, txt: "+" + gained, life: 1 });
+            if (ENDLESS() && !boss && score >= nextBoss) { nextBoss += 30; startBoss(); }
             if (relax() && Math.floor(score / 25) > milestone) {          // cada 25 mimos, un festejito suave
               milestone = Math.floor(score / 25);
               showCombo(`¡${milestone * 25} mimos! 💗`); sfx.chime();
@@ -551,6 +643,7 @@
         ctx.globalAlpha = Math.min(1, q.life); ctx.fillText(q.txt, q.x, q.y); ctx.globalAlpha = 1;
       }
       if (relax()) { raf = requestAnimationFrame(loop); return; }   // en tranqui no hay reloj ni fin
+      if (ENDLESS()) { if (lives <= 0) { end(); return; } raf = requestAnimationFrame(loop); return; }
       const sec = Math.max(0, Math.ceil(DUR - t));
       if (sec !== shownSec) {
         shownSec = sec; $("#gTime").textContent = sec + "s";
