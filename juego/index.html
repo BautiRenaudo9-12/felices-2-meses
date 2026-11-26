@@ -351,7 +351,7 @@
     // en la página del sábado (30 segundos) aparece un jefe final en los últimos 11 segundos
     const FINAL_BOSS = { e: "😼", name: "¡Jefe final: el gato!", sub: "esquivá sus jejenes 👀", pats: ["aim", "fan", "wall"], speed: 1.4 };
     const FINAL_AT = 19;
-    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60, finalDone = false;
+    let boss = null, nextBoss = 30, level = 1, HUD_Y = 60, finalDone = false, vanish = [], gapHint = null;
     let CATCH_Y = 0;                                   // altura donde la perrita atrapa (según la pantalla)
     let dpr = 1, W = 0, H = 0, items = [], pops = [], px = 0, tx = 0, score = 0, lives = 3, t = 0,
         running = false, counting = false, last = 0, spawnT = 0, raf = 0, shownSec = -1, shownPow = -1,
@@ -396,6 +396,7 @@
       win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .18, "triangle", .14, null, i * .1)),
       boss: () => { tone(196, .25, "square", .09); tone(147, .45, "square", .09, null, .26); },
       hiss: () => noise(.12, .12, 2600, 1400),
+      poof: () => { noise(.18, .16, 900, 3200); tone(880, .2, "sine", .07, 1760); },
       life: () => [659, 880, 1047].forEach((f, i) => tone(f, .15, "sine", .14, null, i * .08)),
       chime: () => [784, 988, 1175].forEach((f, i) => tone(f, .6, "sine", .1, null, i * .12, .02)),
     };
@@ -470,36 +471,51 @@
     function setPower(on) { $("#gPow").classList.toggle("on", on); pupEl.classList.toggle("power", on); if (!on) shownPow = -1; }
     function showCombo(txt) { const c = $("#gCombo"); c.textContent = txt; c.classList.remove("show"); void c.offsetWidth; c.classList.add("show"); }
     const typeOf = e => TYPES.find(x => x.e === e);
+    // hace desaparecer con una animación (se agranda, se desvanece y deja brillitos) lo que cumpla la condición
+    function poofItems(which) {
+      const gone = items.filter(which);
+      if (!gone.length) return;
+      items = items.filter(it => !which(it));
+      gone.forEach((it, i) => {
+        vanish.push({ e: it.ty.e, x: it.x, y: it.y, life: 1, r: Math.sin(t * 3 + it.ph) * .25 });
+        if (i < 14) pops.push({ x: it.x, y: it.y, txt: "✨", life: .8 });
+      });
+      sfx.poof();
+    }
     function levelLabel() { $("#gTime").textContent = `⭐ Nivel ${level}`; }
     function startBoss(final = false) {
       const k = final ? FINAL_BOSS : BOSSES[(level - 1) % BOSSES.length];
       boss = { k, x: W / 2, y: -80, t: 0, dur: final ? Math.max(6, DUR - t) : 12, throwT: 1.1, pi: 0, final };
       game.classList.add("boss");
+      poofItems(() => true);                                                       // se va todo lo que estaba cayendo
       const b = $("#gBanner"); b.querySelector("b").textContent = `${k.e} ${k.name}`; b.querySelector("small").textContent = k.sub;
       b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
       game.classList.remove("shake"); void game.offsetWidth; game.classList.add("shake");
       sfx.boss(); if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
     }
     function bossAttack() {
-      const sp = 1 + (level - 1) * .08, J = typeOf("🦟"), by = boss.y + 30;
+      const sp = 1 + (level - 1) * .06, J = typeOf("🦟"), by = boss.y + 30;
       const pat = boss.k.pats[boss.pi++ % boss.k.pats.length];
       if (pat === "aim") {
         for (let i = 0; i < 3; i++) setTimeout(() => {
           if (!boss || !running) return;
-          const vy = 310 * sp, time = Math.max(.4, (CATCH_Y - (boss.y + 30)) / vy);
+          const vy = 235 * sp, time = Math.max(.5, (CATCH_Y - (boss.y + 30)) / vy);
           items.push({ ty: J, x: boss.x, y: boss.y + 30, vy, vx: (px + rand(-8, 8) - boss.x) / time, ph: 0 });
         }, i * 280);
-        boss.throwT = 1.5 / sp;
-      } else if (pat === "fan") {
-        for (let i = -2; i <= 2; i++) items.push({ ty: J, x: boss.x, y: by, vy: 260 * sp, vx: i * 85, bounce: true, ph: 0 });
-        boss.throwT = 1.35 / sp;
-      } else if (pat === "wall") {
-        const n = Math.max(5, Math.floor((W - 40) / 46)), step = (W - 48) / (n - 1), gap = 1 + Math.floor(Math.random() * (n - 3));
-        for (let i = 0; i < n; i++) if (i !== gap && i !== gap + 1) items.push({ ty: J, x: 24 + i * step, y: by - 10, vy: 205 * sp, vx: 0, ph: i });
         boss.throwT = 1.7 / sp;
+      } else if (pat === "fan") {
+        for (let i = -2; i <= 2; i++) items.push({ ty: J, x: boss.x, y: by, vy: 195 * sp, vx: i * 70, bounce: true, ph: 0 });
+        boss.throwT = 1.6 / sp;
+      } else if (pat === "wall") {
+        // cortina más lenta con un hueco ancho (casi el doble de la perrita) que se marca en el piso
+        const n = Math.max(5, Math.floor((W - 40) / 54)), step = (W - 48) / (n - 1);
+        const gap = 1 + Math.floor(Math.random() * (n - 3));                     // deja libres gap y gap+1
+        for (let i = 0; i < n; i++) if (i !== gap && i !== gap + 1) items.push({ ty: J, x: 24 + i * step, y: by - 10, vy: 145 * sp, vx: 0, ph: i });
+        gapHint = { x: 24 + (gap + .5) * step, w: step * 2.3, life: 1 };
+        boss.throwT = 2.2 / sp;
       } else {                                                                       // zig
-        for (let i = 0; i < 4; i++) items.push({ ty: J, x: rand(40, W - 40), y: by, vy: 225 * sp, vx: 0, zig: rand(90, 150) * (Math.random() < .5 ? -1 : 1), ph: rand(0, 6) });
-        boss.throwT = 1.25 / sp;
+        for (let i = 0; i < 4; i++) items.push({ ty: J, x: rand(40, W - 40), y: by, vy: 175 * sp, vx: 0, zig: rand(80, 130) * (Math.random() < .5 ? -1 : 1), ph: rand(0, 6) });
+        boss.throwT = 1.5 / sp;
       }
       sfx.hiss && sfx.hiss();
     }
@@ -518,7 +534,8 @@
       ctx.drawImage(sprite(boss.k.e, 78), -39, -39, 78, 78); ctx.restore();
       if (leaving && boss.y < -90) {                                               // ¡lo aguantaste!
         const wasFinal = boss.final;
-        boss = null; game.classList.remove("boss");
+        boss = null; game.classList.remove("boss"); gapHint = null;
+        poofItems(it => it.ty.bad);
         if (wasFinal) finalDone = true; else { level++; levelLabel(); }
         score += 5; hud();
         showCombo(wasFinal ? "¡Le ganaste al jefe! +5 🏆" : "¡Lo aguantaste! +5 🏆"); sfx.win();
@@ -531,7 +548,7 @@
       who = p; stats = PUPS[p];
       pupEl.querySelector("use").setAttribute("href", "#" + p);
       size();
-      items = []; pops = []; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
+      items = []; pops = []; vanish = []; gapHint = null; score = 0; lives = 3; t = 0; spawnT = .4; shownSec = -1; power = 0; combo = 0; lastCatch = 0; dir = 1;
       px = tx = W / 2; placePup(); pupEl.classList.remove("left", "power", "bump", "hurt"); setPower(false);
       milestone = 0; boss = null; nextBoss = 30; level = 1; finalDone = false; game.classList.remove("boss");
       $("#gTime").classList.remove("hurry"); $("#gTime").textContent = relax() ? "🌙 tranqui" : ENDLESS() ? "⭐ Nivel 1" : DUR + "s";
@@ -629,7 +646,25 @@
       }
       if (combo && t - lastCatch > 2.5) combo = 0;
       ctx.clearRect(0, 0, W, H);
+      if (gapHint) {                                                                 // "¡por acá!" en el hueco de la cortina
+        gapHint.life -= dt * .4;
+        if (gapHint.life <= 0) gapHint = null;
+        else {
+          ctx.globalAlpha = Math.min(1, gapHint.life * 2) * (.55 + Math.sin(t * 10) * .2);
+          ctx.fillStyle = "#7ddca8";
+          const gx = gapHint.x - gapHint.w / 2, gy = CATCH_Y - 26;
+          ctx.beginPath(); ctx.roundRect ? ctx.roundRect(gx, gy, gapHint.w, 66, 18) : ctx.rect(gx, gy, gapHint.w, 66); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
       if (boss) updateBoss(dt);
+      for (let i = vanish.length - 1; i >= 0; i--) {                                 // puf: se agranda y se desvanece
+        const v = vanish[i]; v.life -= dt * 3.2;
+        if (v.life <= 0) { vanish.splice(i, 1); continue; }
+        const sc = 1 + (1 - v.life) * .9;
+        ctx.save(); ctx.globalAlpha = v.life; ctx.translate(v.x, v.y); ctx.rotate(v.r); ctx.scale(sc, sc);
+        ctx.drawImage(sprite(v.e), -23, -23, 46, 46); ctx.restore();
+      }
       const catchY = CATCH_Y;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
