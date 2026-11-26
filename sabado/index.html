@@ -584,7 +584,7 @@
   // Abrí la página con ?reset al final del link para borrar el progreso (útil después de probarla)
   const qs = new URLSearchParams(location.search);
   if (qs.has("reset")) {
-    try { ["in", "solved", "used"].forEach(k => localStorage.removeItem(k)); } catch(e){}
+    try { ["in", "solved", "used", "introSeen"].forEach(k => localStorage.removeItem(k)); } catch(e){}
     qs.delete("reset"); history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : ""));
   }
 
@@ -634,7 +634,8 @@
   }
   function unlock() {
     store.set("in", true);
-    playIntro();                       // la intro arranca detrás de la puerta que se cierra en círculo
+    // la intro romántica solo la primera vez; después entra directo a la página
+    if (store.get("introSeen", false)) finishIntro(); else playIntro();
     $("#gate").classList.add("gone");
   }
 
@@ -783,6 +784,7 @@
   }
   function finishIntro() {
     if (introDone) return; introDone = true;
+    store.set("introSeen", true);
     timers.forEach(clearTimeout); filling = false;
     const intro = $("#intro");
     intro.classList.add("out");
@@ -796,7 +798,7 @@
   const urlFecha = (new URLSearchParams(location.search).get("fecha") || "").replace(/\D/g, "");
   // (se ejecuta al final del script, cuando ya está todo definido)
   setTimeout(() => {
-    if (store.get("in", false)) { $("#gate").classList.add("gone"); playIntro(); }
+    if (store.get("in", false)) { $("#gate").classList.add("gone"); if (store.get("introSeen", false)) finishIntro(); else playIntro(); }
     else if (urlFecha === PASS || urlFecha === PASS_DATE.replace(/\D/g, "")) unlock();
   }, 0);
   // la fecha correcta: 28 de septiembre de 2026
