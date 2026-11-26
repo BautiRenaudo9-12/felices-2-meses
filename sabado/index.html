@@ -768,7 +768,7 @@
   bigH.addEventListener("pointerup", release); bigH.addEventListener("pointercancel", release);
   function fillLoop(t) {
     if (!filling || introDone) return;
-    const dt = Math.min(64, t - lastT); lastT = t;
+    t = performance.now(); const dt = Math.max(0, Math.min(64, t - lastT)); lastT = t;   // reloj real, sin pasos negativos
     if (holding || autoFill) p += dt / (autoFill ? 1600 : 1300); else p = Math.max(0, p - dt / 3000);
     p = Math.min(1, p);
     $("#hfill").setAttribute("y", (22 - p * 20).toFixed(2));

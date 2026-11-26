@@ -684,7 +684,9 @@
 
     function loop(now) {
       if (!running || pausedByView) return;
-      const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+      // reloj real (no el del cuadro, que en algunos celulares viene atrasado) y nunca un paso negativo
+      now = performance.now();
+      const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now; t += dt;
       // aparecen cosas cada vez más seguido y más rápido
       spawnT -= dt;
       if (spawnT <= 0 && !boss) {                                                   // con jefe en pantalla solo ataca él
