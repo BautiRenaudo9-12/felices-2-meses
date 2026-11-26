@@ -504,13 +504,16 @@
         }, i * 280);
         boss.throwT = 1.7 / sp;
       } else if (pat === "fan") {
-        for (let i = -2; i <= 2; i++) items.push({ ty: J, x: boss.x, y: by, vy: 195 * sp, vx: i * 70, bounce: true, ph: 0 });
+        for (let i = -1; i <= 1; i++) items.push({ ty: J, x: boss.x, y: by, vy: 195 * sp, vx: i * 95, bounce: true, ph: 0 });
         boss.throwT = 1.6 / sp;
       } else if (pat === "wall") {
         // cortina más lenta con un hueco ancho (casi el doble de la perrita) que se marca en el piso
         const n = Math.max(5, Math.floor((W - 40) / 54)), step = (W - 48) / (n - 1);
         const gap = 1 + Math.floor(Math.random() * (n - 3));                     // deja libres gap y gap+1
-        for (let i = 0; i < n; i++) if (i !== gap && i !== gap + 1) items.push({ ty: J, x: 24 + i * step, y: by - 10, vy: 145 * sp, vx: 0, ph: i });
+        let slots = [];
+        for (let i = 0; i < n; i++) if (i !== gap && i !== gap + 1) slots.push(i);
+        for (let k = 0; k < 2 && slots.length > 2; k++) slots.splice(Math.floor(Math.random() * slots.length), 1);   // 2 jejenes menos
+        slots.forEach(i => items.push({ ty: J, x: 24 + i * step, y: by - 10, vy: 145 * sp, vx: 0, ph: i }));
         gapHint = { x: 24 + (gap + .5) * step, w: step * 2.3, life: 1 };
         boss.throwT = 2.2 / sp;
       } else {                                                                       // zig
