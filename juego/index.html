@@ -74,6 +74,11 @@
   .g-pick button:active{transform:scale(.95)}
   .g-pick button svg{width:84px;height:84px;display:block;margin:0 auto 2px}
   .g-pick small{display:block;font:700 12px "Nunito",sans-serif;color:var(--ink-soft);margin-top:2px}
+  .g-go{display:inline-block;margin-top:6px;background:var(--pink-d);color:#fff;border-radius:999px;padding:3px 12px;font:600 14px "Fredoka",sans-serif}
+  .g-pick button{animation:pickBob 2.4s ease-in-out infinite}
+  .g-pick button + button{animation-delay:-1.2s}
+  @keyframes pickBob{50%{transform:translateY(-4px)}}
+  .g-tap{margin:0;font:600 16px "Fredoka",sans-serif;color:var(--pink-dd)}
   .g-snd{appearance:none;border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:700 14px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
 
   /* festejo al ganar: la perrita salta de alegría y después le da un lengüetazo a la pantalla */
@@ -256,9 +261,10 @@
           <button data-m="desafio" role="radio">🏆 Desafío</button>
           <button data-m="tranqui" role="radio">🌙 Tranqui</button>
         </div>
+        <p class="g-tap">👇 Tocá a una perrita para empezar</p>
         <div class="g-pick">
-          <button data-p="zari"><svg><use href="#zari"/></svg>Zari<small>⚡ es rápida</small></button>
-          <button data-p="frida"><svg><use href="#frida"/></svg>Frida<small>🫶 atrapa más</small></button>
+          <button data-p="zari" aria-label="Jugar con Zari"><svg><use href="#zari"/></svg>Zari<small>⚡ es rápida</small><span class="g-go">▶ Jugar</span></button>
+          <button data-p="frida" aria-label="Jugar con Frida"><svg><use href="#frida"/></svg>Frida<small>🫶 atrapa más</small><span class="g-go">▶ Jugar</span></button>
         </div>
         <p class="muted" id="gMsg">Juntá <b>20 mimos</b> en 30 segundos.<br>🍿 Los pochoclos dan puntos dobles.<br>Arrastrá el dedo para moverte 👆</p>
         <div class="g-btns"><button class="g-snd" id="gSnd">🔇 Sonido apagado</button><button class="g-snd g-inst" id="gInst" hidden>📲 Instalar en el celu</button></div>
@@ -402,7 +408,7 @@
       s.buffer = b; f.type = type; f.Q.value = q;
       f.frequency.setValueAtTime(from, t0); f.frequency.exponentialRampToValueAtTime(to, t0 + dur);
       g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-      s.connect(f).connect(g).connect(bus); s.start(t0);
+      s.connect(f); f.connect(g); g.connect(bus); s.start(t0);
     }
     const sfx = {
       pop:   () => { tone(392, .16, "sine", .16, 587, 0, .004, .3); tone(196, .12, "triangle", .06, 294, 0, .004, 0); },      // "blup" redondo
@@ -439,6 +445,8 @@
       }, 430);
     }
     function musicStop() { clearInterval(musicTimer); musicTimer = null; }
+    // si algún sonido falla en un celular, se ignora: el juego sigue igual
+    for (const k of Object.keys(sfx)) { const fn = sfx[k]; sfx[k] = (...a) => { try { fn(...a); } catch (e) {} }; }
     const sndBtn = $("#gSnd");
     const sndLabel = () => { sndBtn.textContent = snd ? "🔊 Sonido prendido" : "🔇 Sonido apagado"; };
     sndLabel();
@@ -780,7 +788,7 @@
     });
     $("#gEnd").addEventListener("click", e => { e.stopPropagation(); if (running && relax()) end(); });
     over.querySelectorAll("[data-p]").forEach(b => b.addEventListener("click", e => {
-      e.stopPropagation(); if (running || counting) return; audio && snd && audio(); start(b.dataset.p);
+      e.stopPropagation(); if (running || counting) return; try { if (snd) audio(); } catch (_) {} start(b.dataset.p);
     }));
     addEventListener("resize", () => { size(); tx = Math.max(40, Math.min(W - 40, tx)); });
     size();
