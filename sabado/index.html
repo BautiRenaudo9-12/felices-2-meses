@@ -632,7 +632,7 @@
     if (introDone) return;
     $("#hL").classList.add("show"); later(() => $("#hR").classList.add("show"), 150);
     hint("Juntá los corazones 💗<small>arrastrá uno hacia el otro</small>");
-    later(merge, 6000);                               // si no toca nada, se juntan solos
+    // espera a que ella los junte: no avanza sola
   }
   [$("#hL"), $("#hR")].forEach(h => {
     let sx, sy, ox, oy, moved = false;
@@ -691,7 +691,7 @@
     if (introDone) return;
     hint("Mantené apretado el corazón 💗<small>para llenarlo de amor</small>");
     filling = true; lastT = performance.now(); requestAnimationFrame(fillLoop);
-    later(() => { if (p < .05 && !holding) autoFill = true; }, 4500);   // si no lo toca, se llena solo
+    // espera a que ella lo mantenga apretado: no se llena solo
   }
   const bigH = $("#bigH");
   bigH.addEventListener("pointerdown", e => {
